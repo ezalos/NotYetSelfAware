@@ -2,6 +2,19 @@
 
 The objective is to create my own complete implementation of a Neural Networks, with the help of numpy
 
+
+## Installation
+
+```sh
+pip install NoYetSelfAware
+```
+
+or 
+
+```sh
+python3 -m pip install NoYetSelfAware
+```
+
 ## Package
 
 It's currently my first python package.
@@ -43,16 +56,10 @@ python3 -m pip install --user --upgrade twine
 Once installed, run Twine to upload all of the archives under `dist`:
 
 ```sh
-python3 -m twine upload --repository testpypi dist/*
+twine upload dist/*
 ```
 
 You will be prompted for a username and password.
 
  - For the username, use `__token__`.
  - For the password, use the token value (including the pypi- prefix).
-
-### Installing
-
-```sh
-python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps https://test.pypi.org/project/NotYetSelfAware/0.0.1/
-```
