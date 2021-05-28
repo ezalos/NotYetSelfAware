@@ -1,6 +1,8 @@
 import numpy as np
+from .base import BaseActivation
 
-class Sigmoid():
+
+class Sigmoid(BaseActivation):
 	def __init__(self) -> None:
 		pass
 
@@ -8,7 +10,7 @@ class Sigmoid():
 		A = 1 / (1 + np.exp(-Z))
 		return A
 
-	def backward(self, X):
-		Z = self.forward(X)
-		dZ = Z * (1 - Z)
-		return dZ
+	def backward(self, Z):
+		A = self.forward(A)
+		dA = A * (1 - A)
+		return dA

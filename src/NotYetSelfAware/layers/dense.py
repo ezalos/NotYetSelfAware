@@ -1,14 +1,15 @@
 import numpy as np
-import activations
-# from .activations.sigmoid import Sigmoid
+from base import Base
 
-class Dense():
+class Dense(Base):
+	name = "Dense"
 	def __init__(self,
 				 curr_shape: int,
 				 prev_shape: int,
 				 seed=None,
 				 init_coef=0.01,
-				 activation="ReLU",
+				 activation="LeakyReLU",
+				 learning_rate=0.01,
 				 debug=False):
 		"""[summary]
 
@@ -26,16 +27,12 @@ class Dense():
 		self.debug = debug
 		if self.debug:
 			print("Initialization of Dense")
-		self.shape = (curr_shape, prev_shape)
 		if seed:
 			np.random.seed(seed=seed)
-		self.W = np.random.randn(curr_shape, prev_shape)
-		self.b = np.zeros((curr_shape, 1))
-		self.Z = np.random.randn(curr_shape, 1)
-		self.A = np.random.randn(curr_shape, 1)
-		self.activation = activation
-		self.f_activation = activations.Sigmoid()
-		pass
+		self.shape = (curr_shape, prev_shape)
+		self.learning_rate = learning_rate
+		self.init_weights(curr_shape, prev_shape)
+		self.init_activation(activation)
 
 	def forward(self, dA_m1):
 		self.Z = np.dot(self.W, dA_m1) + self.b
@@ -43,6 +40,16 @@ class Dense():
 		return self.A
 
 	def backward(self, dA_m1, dA_p1, opti=True):
+		# dg = lambda A: (1 - np.power(A, 2))
+		#
+		# dZ2 = A2 - Y
+		# dW2 = (1 / m) * np.dot(dZ2, A1.T)
+		# db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
+		#
+		# dZ1 = np.dot(W2.T, dZ2) * dg(A1)
+		# dW1 = (1 / m) * np.dot(dZ1, X.T)
+		# db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
+
 		if not opti:
 			self.Z = self.forward(dA_m1)
 
@@ -65,13 +72,9 @@ class Dense():
 
 		return self.dA
 
-	def __str__(self) -> str:
-		msg = f"{' ' * 2}"
-		msg += f"{self.__class__}: layer"
-		msg += f" of shape {self.shape}"
-		msg += f" with activation {self.activation}"
-		return msg
-
+	def update(self, dW, db):
+		self.W = self.W - self.learning_rate * dW
+		self.b = self.b - self.learning_rate * db
 
 
 if __name__ == "__main__":
@@ -79,7 +82,8 @@ if __name__ == "__main__":
 
 	prev = 2
 	curr = 4
-	X = np.random.randn(prev, 1)
+	nb_examples = 10
+	X = np.random.randn(prev, nb_examples)
 
 	print(f"Prev layers size: {prev}")
 	print(f"Curr layers size: {curr}")
