@@ -1,5 +1,5 @@
 import numpy as np
-from base import Base
+from .base import Base
 
 class Dense(Base):
 	name = "Dense"
@@ -34,31 +34,21 @@ class Dense(Base):
 		self.init_weights(curr_shape, prev_shape)
 		self.init_activation(activation)
 
-	def forward(self, dA_m1):
-		self.Z = np.dot(self.W, dA_m1) + self.b
+	def forward(self, A_m1):
+		self.Z = np.dot(self.W, A_m1) + self.b
 		self.A = self.f_activation.forward(self.Z)
 		return self.A
 
-	def backward(self, dA_m1, dA_p1, opti=True):
-		# dg = lambda A: (1 - np.power(A, 2))
-		#
-		# dZ2 = A2 - Y
-		# dW2 = (1 / m) * np.dot(dZ2, A1.T)
-		# db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
-		#
-		# dZ1 = np.dot(W2.T, dZ2) * dg(A1)
-		# dW1 = (1 / m) * np.dot(dZ1, X.T)
-		# db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
-
+	def backward(self, W_p1, A_m1, dA, opti=True):
 		if not opti:
-			self.Z = self.forward(dA_m1)
+			self.Z = self.forward(A_m1)
 
-		m = dA_p1.shape[1]
+		m = dA.shape[1]
 
-		self.dZ = np.dot(self.W.T, dA_p1)
-		self.dA = np.dot(self.dZ, self.f_activation.backward(self.Z).T)
+		self.dZ = dA * self.f_activation.backward(self.Z)
+		self.dA = np.dot(self.W.T, self.dZ)
 
-		self.dW = (1 / m) * np.dot(self.dZ.T, dA_m1)
+		self.dW = (1 / m) * np.dot(self.dZ, A_m1.T)
 		self.db = (1 / m) * np.sum(self.dZ, axis=1, keepdims=True)
 
 		if self.debug:
@@ -72,7 +62,11 @@ class Dense(Base):
 
 		return self.dA
 
-	def update(self, dW, db):
+	def update(self, dW=None, db=None):
+		if dW == None:
+			dW = self.dW
+		if db == None:
+			db = self.db
 		self.W = self.W - self.learning_rate * dW
 		self.b = self.b - self.learning_rate * db
 

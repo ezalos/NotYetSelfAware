@@ -1,5 +1,5 @@
 import numpy as np
-import activations
+from .activations import Tanh, Sigmoid, ReLU, LeakyReLU
 # from .activations.sigmoid import Sigmoid
 
 
@@ -49,13 +49,13 @@ class Base():
 		# Function Activation
 		self.activation = activation
 		if self.activation == "tanh":
-			self.f_activation = activations.Tanh()
+			self.f_activation = Tanh()
 		elif self.activation == "sigmoid":
-			self.f_activation = activations.Sigmoid()
+			self.f_activation = Sigmoid()
 		elif self.activation == "ReLU":
-			self.f_activation = activations.ReLU()
+			self.f_activation = ReLU()
 		elif self.activation == "LeakyReLU":
-			self.f_activation = activations.LeakyReLU()
+			self.f_activation = LeakyReLU()
 		else:
 			raise ValueError(
 				f"Error: functrion activation {activation} is not recognized")

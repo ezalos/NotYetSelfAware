@@ -32,16 +32,19 @@ class Datasets():
 		X, y = make_blobs(n_samples=n_examples,
                     centers=n_targets,
 					n_features=n_features)
+		y = y.reshape((1, -1))
 		return X, y
 
 	def moons(self, n_examples):
 		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html
 		X, y = make_moons(n_samples=n_examples, noise=self.noise)
+		y = y.reshape((1, -1))
 		return X, y
 
 	def circles(self, n_examples):
 		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_circles.html
 		X, y = make_circles(n_samples=n_examples, noise=self.noise)
+		y = y.reshape((1, -1))
 		return X, y
 
 	def regression(self, n_examples, n_features, n_targets=1):
@@ -49,6 +52,7 @@ class Datasets():
 
 		X, y = make_regression(n_samples=n_examples, n_features=n_features,
 		                       n_targets=n_targets, noise=self.noise)
+		y = y.reshape((1, -1))
 		return X, y
 
 if __name__ == "__main__":
