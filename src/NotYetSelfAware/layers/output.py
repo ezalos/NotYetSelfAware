@@ -6,16 +6,16 @@ from .dense import Dense
 class Output(Dense):
 	name = "Output"
 
-	def backward(self, dA_m1, A, Y, opti=True, last=False):
+	def backward(self, A_m1, A, Y, opti=True, last=False):
 		if not opti:
-			self.Z = self.forward(dA_m1)
+			self.Z = self.forward(A_m1)
 
 		m = A.shape[1]
 
 		self.dZ = A - Y
 		self.dA = np.dot(self.W.T, self.dZ)
 
-		self.dW = (1 / m) * np.dot(self.dZ, dA_m1.T)
+		self.dW = (1 / m) * np.dot(self.dZ, A_m1.T)
 		self.db = (1 / m) * np.sum(self.dZ, axis=1, keepdims=True)
 
 		if self.debug:
