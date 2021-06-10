@@ -46,6 +46,7 @@ class Base():
 		self.A = np.zeros((curr_shape, 1))
 
 	def init_activation(self, activation):
+		# TODO: Make dictionnary for selection activation layer
 		# Function Activation
 		self.activation = activation
 		if self.activation == "tanh":
@@ -76,3 +77,6 @@ class Base():
 		msg += f" of shape {self.shape}"
 		msg += f" with activation {self.activation}"
 		return msg
+
+
+	# TODO: genretare/load params cache grads
