@@ -25,11 +25,8 @@ class Model():
 	def __init__(self, lr=None) -> None:
 		self.layers =  []
 		self.f_loss = BinaryCrossEntropy()
+		self.lr_0 = lr
 		self.lr = lr
-
-	def change_lr(self, lr_coef):
-		for l in self.layers:
-			l.learning_rate *= lr_coef
 
 	def add_layer(self, layer):
 		if self.lr:
@@ -37,7 +34,7 @@ class Model():
 		self.layers.append(layer)
 		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
 
-	def get_batch(self, X, y, size):
+	def get_minibatch(self, X, y, size):
 		if size == None:
 			size = X.shape[1]
 		# print(X.shape)
@@ -50,12 +47,12 @@ class Model():
 			y_batch = y[:, start:end]
 			yield (X_batch, y_batch)
 
-	def fit(self, X, y, epoch=1, batch=128):
+	def fit(self, X, y, epoch=1, minibatch=512):
 		losses = []
 		for e in range(epoch):
 			logging.debug(f"Epoch {e + 1}/ {epoch}")
 
-			for i, (X_batch, y_batch) in enumerate(self.get_batch(X, y, batch)):
+			for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
 				logging.debug(f"{' ' * 4}Batch {i + 1}")
 				A = X_batch.T
 				for i, l in enumerate(self.layers):
@@ -67,11 +64,6 @@ class Model():
 
 				print(f"\tLoss = {loss}")
 				losses.append(losses)
-				if np.isnan(loss):
-					self.change_lr(1/2)
-					continue
-				if len(losses) > 1 and losses[-1] > losses[-2]:
-					self.change_lr(1/2)
 				
 				self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
 				for i in range(len(self.layers[:-1]))[::-1]:
@@ -83,9 +75,12 @@ class Model():
 					self.layers[i].backward(self.layers[i + 1].params,
 												 self.layers[i + 1].grads,
 												 A_m1)
-
 				self.update()
+			self.lr_decay(e)
 			# print(f"Updated!")
+
+	def lr_decay(self, epoch):
+		self.lr = 1 / (1 + self.lr_0 * epoch)
 
 	def update(self):
 		for l in self.layers:
@@ -127,7 +122,7 @@ if __name__ == "__main__":
 	acc = accuracy(y, y_pred)
 	print(f'Accuracy: {acc}%')
 	while acc < 98:
-		model.fit(X=X, y=y, epoch=epochs, batch=128)
+		model.fit(X=X, y=y, epoch=epochs, minibatch=512)
 
 		y_pred = model.predict(X=X, Threshold=0.5)
 

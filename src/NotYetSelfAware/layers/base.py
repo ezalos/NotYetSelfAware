@@ -34,16 +34,25 @@ class Base():
 		self.n_units = n_units
 		self.shape = (n_units, input_dim)
 		self.learning_rate = learning_rate
+		self._init_activation(activation)
 		self._init_params(n_units, input_dim)
 		self._init_cache(n_units)
 		self._init_grads()
-		self._init_activation(activation)
+
+	def _init_weights(self):
+		if self.g_name == "tanh":
+			return (1 / self.shape[1]) ** (1/2)
+		# elif self.g_name == "ReLU":
+		return (2 / self.shape[1]) ** (1/2)
+		# Other method
+		# return (2 / (input_dim + n_units)) ** (1/2)
+
 
 	# * Naming convention:
 	#	https://stackoverflow.com/questions/8689964/why-do-some-functions-have-underscores-before-and-after-the-function-name
 	def _init_params(self, n_units, input_dim):
 		self.params = {
-			'W': np.random.randn(n_units, input_dim),
+			'W': np.random.randn(n_units, input_dim) * self._init_weights(),
 			'b': np.zeros((n_units, 1)),
 		}
 

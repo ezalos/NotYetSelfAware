@@ -45,33 +45,6 @@ class Dense(Base):
 
 		return self.grads['dZ']
 
-	def update(self, params, grads):
-		params['W'] = params['W'] - self.learning_rate * grads['dW']
-		params['b'] = params['b'] - self.learning_rate * grads['db']
-
-	# def _backward(self, W_p1, A_m1, dA, opti=True):
-	# 	if not opti:
-	# 		self.Z = self.forward(A_m1)
-
-	# 	m = dA.shape[1]
-
-	# 	self.dZ = dA * self.f_activation.backward(self.Z)
-	# 	self.dA = np.dot(self.W.T, self.dZ)
-
-	# 	self.dW = (1 / m) * np.dot(self.dZ, A_m1.T)
-	# 	self.db = (1 / m) * np.sum(self.dZ, axis=1, keepdims=True)
-
-	# 	if self.debug:
-	# 		print("Backward()")
-	# 		print(f"m  = {m}")
-	# 		print(f"dZ = {self.dZ}")
-	# 		print(f"dA = {self.dA}")
-	# 		print(f"dW = {self.dW}")
-	# 		print(f"db = {self.db}")
-	# 		print()
-
-	# 	return self.dA
-
 
 if __name__ == "__main__":
 	np.random.seed(seed=42)
