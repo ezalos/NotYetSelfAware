@@ -75,14 +75,14 @@ class Model():
 					self.layers[i].backward(self.layers[i + 1].params,
 												 self.layers[i + 1].grads,
 												 A_m1)
-				self.update()
-			self.lr_decay(e)
+				self._update()
+			self._lr_decay(e)
 			# print(f"Updated!")
 
-	def lr_decay(self, epoch):
+	def _lr_decay(self, epoch):
 		self.lr = 1 / (1 + self.lr_0 * epoch)
 
-	def update(self):
+	def _update(self):
 		for l in self.layers:
 			l.params['W'] = l.params['W'] - self.lr * l.grads['dW']
 			l.params['b'] = l.params['b'] - self.lr * l.grads['db']
