@@ -4,6 +4,22 @@ from layers import Dense, Output
 from datasets.datasets import Datasets
 from validation import accuracy
 from cost import BinaryCrossEntropy
+import logging
+import sys
+
+# LOGGER INITIALISATION
+root = logging.getLogger()
+logging.basicConfig(filename="mylog.log")
+logging.root.setLevel(logging.INFO)
+
+#SETTING LOGGER TO STDOUT
+if True:
+	handler = logging.StreamHandler(sys.stdout)
+	handler.setLevel(logging.INFO)
+	# formatter = logging.Formatter(
+	# 	'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+	# handler.setFormatter(formatter)
+	root.addHandler(handler)
 
 class Model():
 	def __init__(self, lr=None) -> None:
@@ -19,7 +35,7 @@ class Model():
 		if self.lr:
 			layer.learning_rate = self.lr
 		self.layers.append(layer)
-		print(f"Added a new layer!\n\t{self.layers[-1]}")
+		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
 
 	def get_batch(self, X, y, size):
 		if size == None:
@@ -37,17 +53,18 @@ class Model():
 	def fit(self, X, y, epoch=1, batch=128):
 		losses = []
 		for e in range(epoch):
-			print(f"Epoch {e + 1}/ {epoch}")
+			logging.debug(f"Epoch {e + 1}/ {epoch}")
 
 			for i, (X_batch, y_batch) in enumerate(self.get_batch(X, y, batch)):
-				print(f"{' ' * 4}Batch {i + 1}")
+				logging.debug(f"{' ' * 4}Batch {i + 1}")
 				A = X_batch.T
 				for i, l in enumerate(self.layers):
-					# print(f"\tForward: layer n*{i} -> {l.W.shape}")
+					logging.debug(f"\tForward: layer n*{i}")
 					A = l.forward(A)
 				AL = A
 
 				loss = self.f_loss.cost(A, y_batch)
+
 				print(f"\tLoss = {loss}")
 				losses.append(losses)
 				if np.isnan(loss):
@@ -56,38 +73,30 @@ class Model():
 				if len(losses) > 1 and losses[-1] > losses[-2]:
 					self.change_lr(1/2)
 				
-				if self.layers[-1].name == "Dense":
-					dAL = - (np.divide(y_batch, AL) - np.divide(1 - y_batch, (1 - AL) + 1e9))
-
-					# print(f"\tBackward: layer n*{len(self.layers) - 1} -> {self.layers[-1].W.shape}")
-					W_p1 = AL
-					A_m1 = self.layers[-2].A
-					dA = self.layers[-1].backward(y_batch, A_m1, dAL)
-				else:
-					dA = self.layers[-1].backward(self.layers[-2].A, A, y_batch)
-				# print(f"\t\tdA: {dA.shape}")
-				for i, l in enumerate(self.layers[:-1][::-1]):
-					# print(f"\tBackward: layer n*{len(self.layers[:-1]) - i - 1} -> {l.W.shape}")
-
-					W_p1 = self.layers[i + 1].W
-					if i < len(self.layers[:-1]) - 1:
-						# print(f"Normal: {i}")
-						A_m1 = self.layers[i - 1].A
-					else:
-						# print(f"First: {i}")
+				self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
+				for i in range(len(self.layers[:-1]))[::-1]:
+					logging.debug(f"\tBackward: layer n*{i}")
+					if i == 0:
 						A_m1 = X_batch.T
+					else:
+						A_m1 = self.layers[i - 1].cache['A']
+					self.layers[i].backward(self.layers[i + 1].params,
+												 self.layers[i + 1].grads,
+												 A_m1)
 
-					# print(f"\t\tA[-1]: {A_m1.shape}")
-					dA = l.backward(W_p1, A_m1, dA)
-					# print(f"\t\tdA: {dA.shape}")
-
-				for l in self.layers:
-					l.update()
+				self.update()
 			# print(f"Updated!")
+
+	def update(self):
+		for l in self.layers:
+			l.params['W'] = l.params['W'] - self.lr * l.grads['dW']
+			l.params['b'] = l.params['b'] - self.lr * l.grads['db']
+
 
 	def predict(self, X, Threshold=None):
 		A = X.T
 		for i, l in enumerate(self.layers):
+			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
 		if Threshold:
 			A = (A > Threshold)
@@ -108,11 +117,15 @@ if __name__ == "__main__":
 	model.add_layer(Dense(5, n_x))
 	model.add_layer(Dense(4, 5))
 	model.add_layer(Dense(3, 4))
-	model.add_layer(Dense(1, 3, activation="sigmoid"))
+	model.add_layer(Output(1, 3, activation="sigmoid"))
 
 	total_epoch = 0
 	acc = 0
 	epochs = 10
+	y_pred = model.predict(X=X, Threshold=0.5)
+
+	acc = accuracy(y, y_pred)
+	print(f'Accuracy: {acc}%')
 	while acc < 98:
 		model.fit(X=X, y=y, epoch=epochs, batch=128)
 

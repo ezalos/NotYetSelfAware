@@ -1,33 +1,36 @@
 import numpy as np
 # from base import Base
 from .dense import Dense
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class Output(Dense):
 	name = "Output"
 
-	def backward(self, A_m1, A, Y, opti=True, last=False):
-		if not opti:
-			self.Z = self.forward(A_m1)
+	def forward(self, A_m1):
+		self.cache['Z'] = np.dot(self.params['W'], A_m1) + self.params['b']
+		self.cache['A'] = self.g.forward(self.cache['Z'])
 
-		m = A.shape[1]
+		# logging
+		logger.debug(f"{self.__class__.__name__}: forward()")
+		return self.cache['A']
 
-		self.dZ = A - Y
-		self.dA = np.dot(self.W.T, self.dZ)
+	def backward(self, A, Y, A_m1):
+		self.grads['dZ'] = (A - Y) * self.g.backward(self.cache['Z'])
 
-		self.dW = (1 / m) * np.dot(self.dZ, A_m1.T)
-		self.db = (1 / m) * np.sum(self.dZ, axis=1, keepdims=True)
+		m = self.n_units
+		self.grads['dW'] = (1 / m) * np.dot(self.grads['dZ'], A_m1.T)
+		self.grads['db'] = (1 / m) * np.sum(self.grads['dZ'], axis=1, keepdims=True)
 
-		if self.debug:
-			print("Backward()")
-			print(f"m  = {m}")
-			print(f"dZ = {self.dZ}")
-			print(f"dA = {self.dA}")
-			print(f"dW = {self.dW}")
-			print(f"db = {self.db}")
-			print()
+		# logging
+		logger.debug(f"{self.__class__.__name__}: backward()")
+		logger.debug(f"\tm  = {m}")
+		logger.debug(f"\tdZ: {self.grads['dZ'].shape}")
 
-		return self.dA
+		return self.grads['dZ']
 
 
 if __name__ == "__main__":

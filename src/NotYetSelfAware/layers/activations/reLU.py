@@ -1,15 +1,21 @@
 import numpy as np
 from .base import BaseActivation
 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class ReLU(BaseActivation):
 	def __init__(self, undefined=True) -> None:
-		print("Initialization of ReLU")
+		logger.debug(f"{self.__class__.__name__}: Initialization()")
 		self.undefined = undefined
 		pass
 
 	def forward(self, Z):
-		A = np.max(0., Z)
+		logger.debug(f"{self.__class__.__name__}: forward()")
+		A = np.maximum(0., Z)
+		# logger.debug(f"\t{A = }")
 		return A
 
 	def backward(self, Z):

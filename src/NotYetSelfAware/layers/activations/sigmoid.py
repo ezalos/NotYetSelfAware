@@ -1,5 +1,9 @@
 import numpy as np
 from .base import BaseActivation
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Sigmoid(BaseActivation):
@@ -7,6 +11,7 @@ class Sigmoid(BaseActivation):
 		pass
 
 	def forward(self, Z):
+		logger.debug(f"{self.__class__.__name__}: forward()")
 		A = 1 / (1 + np.exp(-Z))
 		return A
 
