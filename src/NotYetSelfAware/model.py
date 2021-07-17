@@ -1,4 +1,3 @@
-from layers.output import Output
 import numpy as np
 from layers import Dense, Output
 from datasets.datasets import Datasets
@@ -114,7 +113,6 @@ class Model():
 
 
 if __name__ == "__main__":
-
 	m = 1_000
 	n_x = 5
 	n_L = 2
