@@ -1,6 +1,7 @@
 import layers
 from .model import Model
-from .preprocessing.standardize import Standardize
+import preprocessing
+import optimizers
 
 print(f"Hello from {__file__}")
 

@@ -3,7 +3,8 @@ from layers import Dense, Output
 from datasets.datasets import Datasets
 from validation import accuracy
 from cost import BinaryCrossEntropy
-from preprocessing.standardize import Standardize
+from preprocessing import Standardize
+from optimizers import Momentum
 import logging
 from tqdm import trange
 import sys
@@ -23,13 +24,22 @@ if True:
 	root.addHandler(handler)
 
 class Model():
-	def __init__(self, lr=None) -> None:
+	def __init__(self, lr=None, seed=None) -> None:
+		self.seed = seed
+		if seed:
+			np.random.seed(seed=seed)
+		
 		self.layers =  []
 		self.f_loss = BinaryCrossEntropy()
 		self.lr_0 = lr
 		self.lr = lr
 		self.std_X = Standardize()
 		self.std_y = Standardize()
+		self.optimizer = Momentum()
+		self.losses = []
+		self.accues = []
+		self.best_acc = -1
+		self.best_acc_ep = -1
 
 	def add_layer(self, layer):
 		self.layers.append(layer)
@@ -53,42 +63,65 @@ class Model():
 			# sys.exit()
 			yield (X_batch, y_batch)
 
+	def forward(self, X_batch):
+		A = X_batch
+		for i, l in enumerate(self.layers):
+			logging.debug(f"\tForward: layer n*{i}")
+			A = l.forward(A)
+		return A
+
+	def backward(self, AL, X_batch, y_batch):
+		self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
+		for i in range(len(self.layers[:-1]))[::-1]:
+			# logging.debug(f"\tBackward: layer n*{i}")
+			if i == 0:
+				A_m1 = X_batch
+			else:
+				A_m1 = self.layers[i - 1].cache['A']
+			self.layers[i].backward(self.layers[i + 1].params,
+									self.layers[i + 1].grads,
+									A_m1)
+
+	def save(self):
+		pass
+
+	def early_stopping(self, epoch):
+		# TODO: cleaner solution
+		if self.best_acc < self.accues[-1]:
+			self.best_acc = self.accues[-1]
+			self.best_acc_ep = epoch
+		else:
+			if self.best_acc_ep + 50 < epoch:
+				print("Early stopping")
+				print(f"\tBest acc is {self.best_acc} at epoch {self.best_acc_ep}")
+				return True
+		return False
+
 	def fit(self, X, y, epoch=1, minibatch=None):
-		losses = []
-		accues = []
+		self.losses = []
+		self.accues = []
 		with trange(epoch, unit="Epochs") as pbar:
 			for e in pbar:
 				pbar.set_description(f"Epoch {e}")
 				# root.info(f"Epoch {e + 1}/ {epoch}")
 
 				for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
-					# logging.info(f"{' ' * 4}Batch {i + 1}")
-					A = X_batch
-					for i, l in enumerate(self.layers):
-						logging.debug(f"\tForward: layer n*{i}")
-						A = l.forward(A)
-					AL = A
+					AL = self.forward(X_batch)
 
 					loss = self.f_loss.cost(AL, y_batch)
+					self.losses.append(loss)
 
+					self.backward(AL, X_batch, y_batch)
 
-					# print(f"\tLoss = {loss}")
-					losses.append(loss)
-					
-					self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
-					for i in range(len(self.layers[:-1]))[::-1]:
-						# logging.debug(f"\tBackward: layer n*{i}")
-						if i == 0:
-							A_m1 = X_batch
-						else:
-							A_m1 = self.layers[i - 1].cache['A']
-						self.layers[i].backward(self.layers[i + 1].params,
-													self.layers[i + 1].grads,
-													A_m1)
-					self._update()
+					# self._update()
+					self.optimizer.update(self.layers, self.lr)
+
 					acc = accuracy(y, self.predict(X, Threshold=0.5))
-					accues.append(acc)
-				pbar.set_postfix(loss=losses[-1], accuracy=accues[-1])
+					self.accues.append(acc)
+					if self.early_stopping(e):
+						return
+
+				pbar.set_postfix(loss=self.losses[-1], accuracy=self.accues[-1])
 				# self._lr_decay(e)
 				# print(f"Updated!")
 
@@ -117,7 +150,7 @@ class Model():
 
 
 if __name__ == "__main__":
-	m = 100
+	m = 1000
 	n_x = 5
 	n_L = 2
 
@@ -131,12 +164,13 @@ if __name__ == "__main__":
 	model = Model(lr=1e-5)
 	model.add_layer(Dense(5, n_x))
 	model.add_layer(Dense(4, 5))
+	model.add_layer(Dense(4, 4))
 	model.add_layer(Dense(3, 4))
 	model.add_layer(Output(1, 3, activation="sigmoid"))
 
 	total_epoch = 0
 	acc = 0
-	epochs = 5
+	epochs = 10_000
 	y_pred = model.predict(X=X, Threshold=0.5)
 
 	acc = accuracy(y, y_pred)
