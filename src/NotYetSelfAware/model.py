@@ -3,8 +3,9 @@ from layers import Dense, Output
 from datasets.datasets import Datasets
 from validation import accuracy
 from cost import BinaryCrossEntropy
-from layers.preprocessing.standardize import Standardize
+from preprocessing.standardize import Standardize
 import logging
+from tqdm import trange
 import sys
 
 # LOGGER INITIALISATION
@@ -31,13 +32,10 @@ class Model():
 		self.std_y = Standardize()
 
 	def add_layer(self, layer):
-		if self.lr:
-			layer.learning_rate = self.lr
 		self.layers.append(layer)
 		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
 
 	def get_minibatch(self, X, y, size):
-
 		self.std_X.fit(X)
 		self.std_y.fit(y)
 		if size == None:
@@ -55,65 +53,71 @@ class Model():
 			# sys.exit()
 			yield (X_batch, y_batch)
 
-	def standardize(self, X, y):
-		mu = np.mean(X, axix=0)
-		std = np.std(X, axix=0)
-		X = (X - mu) / std
-		return X
-
 	def fit(self, X, y, epoch=1, minibatch=None):
 		losses = []
-		for e in range(epoch):
-			root.info(f"Epoch {e + 1}/ {epoch}")
+		accues = []
+		with trange(epoch, unit="Epochs") as pbar:
+			for e in pbar:
+				pbar.set_description(f"Epoch {e}")
+				# root.info(f"Epoch {e + 1}/ {epoch}")
 
-			for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
-				logging.info(f"{' ' * 4}Batch {i + 1}")
-				A = X_batch
-				for i, l in enumerate(self.layers):
-					logging.debug(f"\tForward: layer n*{i}")
-					A = l.forward(A)
-				AL = A
+				for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
+					# logging.info(f"{' ' * 4}Batch {i + 1}")
+					A = X_batch
+					for i, l in enumerate(self.layers):
+						logging.debug(f"\tForward: layer n*{i}")
+						A = l.forward(A)
+					AL = A
 
-				loss = self.f_loss.cost(A, y_batch)
+					loss = self.f_loss.cost(AL, y_batch)
 
-				print(f"\tLoss = {loss}")
-				losses.append(losses)
-				
-				self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
-				for i in range(len(self.layers[:-1]))[::-1]:
-					logging.debug(f"\tBackward: layer n*{i}")
-					if i == 0:
-						A_m1 = X_batch
-					else:
-						A_m1 = self.layers[i - 1].cache['A']
-					self.layers[i].backward(self.layers[i + 1].params,
-												 self.layers[i + 1].grads,
-												 A_m1)
-				self._update()
-			# self._lr_decay(e)
-			# print(f"Updated!")
+
+					# print(f"\tLoss = {loss}")
+					losses.append(loss)
+					
+					self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
+					for i in range(len(self.layers[:-1]))[::-1]:
+						# logging.debug(f"\tBackward: layer n*{i}")
+						if i == 0:
+							A_m1 = X_batch
+						else:
+							A_m1 = self.layers[i - 1].cache['A']
+						self.layers[i].backward(self.layers[i + 1].params,
+													self.layers[i + 1].grads,
+													A_m1)
+					self._update()
+					acc = accuracy(y, self.predict(X, Threshold=0.5))
+					accues.append(acc)
+				pbar.set_postfix(loss=losses[-1], accuracy=accues[-1])
+				# self._lr_decay(e)
+				# print(f"Updated!")
 
 	def _lr_decay(self, epoch):
-		self.lr = 1 / (1 + (self.lr_0 * epoch))
+		decay_rate = 1
+		self.lr = (1 / (1 + (decay_rate * epoch))) * self.lr_0
 
 	def _update(self):
 		for l in self.layers:
-			l.params['W'] = l.params['W'] - self.lr * l.grads['dW']
-			l.params['b'] = l.params['b'] - self.lr * l.grads['db']
+			# print(f"{l.grads['dW'].sum()}")
+			l.params['W'] = l.params['W'] - (self.lr * l.grads['dW'])
+			l.params['b'] = l.params['b'] - (self.lr * l.grads['db'])
 
 
 	def predict(self, X, Threshold=None):
+		# X = self.std_X.apply(X)
 		A = X
 		for i, l in enumerate(self.layers):
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
 		if Threshold:
 			A = (A > Threshold)
-		return A
+		y_pred = A
+		# y_pred = self.std_y.unapply(y_pred)
+		return y_pred
 
 
 if __name__ == "__main__":
-	m = 1_000
+	m = 100
 	n_x = 5
 	n_L = 2
 
@@ -124,7 +128,7 @@ if __name__ == "__main__":
 	print(f"{y.shape = }")
 	print(f"{y.dtype = }")
 
-	model = Model(lr=1e-3)
+	model = Model(lr=1e-5)
 	model.add_layer(Dense(5, n_x))
 	model.add_layer(Dense(4, 5))
 	model.add_layer(Dense(3, 4))
@@ -132,14 +136,14 @@ if __name__ == "__main__":
 
 	total_epoch = 0
 	acc = 0
-	epochs = 100
+	epochs = 5
 	y_pred = model.predict(X=X, Threshold=0.5)
 
 	acc = accuracy(y, y_pred)
 	acc_0 = acc
 	print(f'Accuracy: {acc}%')
 	while acc < 98:
-		model.fit(X=X, y=y, epoch=epochs, minibatch=128)
+		model.fit(X=X, y=y, epoch=epochs, minibatch=None)
 
 		y_pred = model.predict(X=X, Threshold=0.5)
 
