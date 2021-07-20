@@ -2,6 +2,8 @@
 
 A beautiful library for DeeplLearning, with the help of numpy
 
+![](./assets/demo.gif)
+
 ## About
 
 This project is the occasion to reimplement my theoric learning as it grows.
