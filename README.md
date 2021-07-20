@@ -10,46 +10,40 @@ This project is the occasion to reimplement my theoric learning as it grows.
 
 # Summary
 
-### Legend
-|||
-|-|-|
-|⬜|To Do|
-|🚧|Work in Progress|
-|☑️|Done|
-
 |Activation||
 |:-|-:|
-|leakyReLU|☑️|
-|ReLU|☑️|
-|sigmoid|☑️|
-|tanh|☑️|
+|leakyReLU|✔️|
+|ReLU|✔️|
+|sigmoid|✔️|
+|tanh|✔️|
 
 |Layers||
 |:-|-:|
-|Dense|☑️|
-|Output|☑️|
+|Dense|✔️|
+|Output|✔️|
 |Dropout|⬜|
+|Batch Normalization|⬜|
 |Convolution|⬜|
 |Long Short Term Memory|⬜|
 
 |Optimizers||
 |:-|-:|
-|Gradient Descent|☑️|
-|MiniBatch Gradient Descent|☑️|
-|Stochastic Gradient Descent|☑️|
-|Momentum|☑️|
-|RMSprop|☑️|
-|Adam|☑️|
+|Gradient Descent|✔️|
+|MiniBatch Gradient Descent|✔️|
+|Stochastic Gradient Descent|✔️|
+|Momentum|✔️|
+|RMSprop|✔️|
+|Adam|✔️|
 
 |Validation||
 |:-|-:|
-|Accuracy|☑️|
+|Accuracy|✔️|
 |Recall|⬜|
 |F1_score|⬜|
 
 |Cost||
 |:-|-:|
-|Binary Cross Entropy|☑️|
+|Binary Cross Entropy|✔️|
 |Mean Square Error|⬜|
 |Soft Max|⬜|
 
@@ -63,9 +57,10 @@ This project is the occasion to reimplement my theoric learning as it grows.
 |exponential decay|⬜|
 |staircase decay|⬜|
 
-|Others||
+|PreProcessing||
 |:-|-:|
-|Batch Normalization|⬜|
+|Standardization|✔️|
+|Nomalization|⬜|
 
 # PyPi Package
 
