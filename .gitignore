@@ -56,3 +56,6 @@ MANIFEST
 .venv*/
 .conda*/
 venv
+
+# images
+assets/raw_images

@@ -1,5 +1,6 @@
 import layers
 from .model import Model
+from .visualize import NeuralNetworkVisu
 import preprocessing
 import optimizers
 

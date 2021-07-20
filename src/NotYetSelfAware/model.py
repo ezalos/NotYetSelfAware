@@ -4,7 +4,8 @@ from datasets.datasets import Datasets
 from validation import accuracy
 from cost import BinaryCrossEntropy
 from preprocessing import Standardize
-from optimizers import Momentum
+from optimizers import Adam
+from visualize import NeuralNetworkVisu
 import logging
 from tqdm import trange
 import sys
@@ -32,22 +33,31 @@ class Model():
 		self.layers =  []
 		self.f_loss = BinaryCrossEntropy()
 		self.lr_0 = lr
-		self.lr = lr
-		self.std_X = Standardize()
-		self.std_y = Standardize()
-		self.optimizer = Momentum()
+		self.lr = self.lr_0
+		# self.std_X = Standardize()
+		# self.std_y = Standardize()
+		self.optimizer = Adam()
 		self.losses = []
 		self.accues = []
 		self.best_acc = -1
 		self.best_acc_ep = -1
+		self.visu = NeuralNetworkVisu()
 
 	def add_layer(self, layer):
 		self.layers.append(layer)
 		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
+		if len(self.visu.layers) == 0:
+			self.visu.add_layer(layer.shape[1])
+		self.visu.add_layer(layer.shape[0])
+
+	def visualize(self, e):
+		self.visu.update_weights(self.layers, self.losses, self.accues)
+		self.visu.draw(e)
+			
 
 	def get_minibatch(self, X, y, size):
-		self.std_X.fit(X)
-		self.std_y.fit(y)
+		# self.std_X.fit(X)
+		# self.std_y.fit(y)
 		if size == None:
 			size = X.shape[1]
 		# print(X.shape)
@@ -58,8 +68,8 @@ class Model():
 			end = size * (i + 1)
 			X_batch = X[:, start:end]
 			y_batch = y[:, start:end]
-			X_batch = self.std_X.apply(X_batch)
-			y_batch = self.std_y.apply(y_batch)
+			# X_batch = self.std_X.apply(X_batch)
+			# y_batch = self.std_y.apply(y_batch)
 			# sys.exit()
 			yield (X_batch, y_batch)
 
@@ -69,6 +79,11 @@ class Model():
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
 		return A
+
+	def cost(self, AL, y_batch):
+		loss = self.f_loss.cost(AL, y_batch)
+
+		self.losses.append(loss)
 
 	def backward(self, AL, X_batch, y_batch):
 		self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
@@ -90,16 +105,22 @@ class Model():
 		if self.best_acc < self.accues[-1]:
 			self.best_acc = self.accues[-1]
 			self.best_acc_ep = epoch
-		else:
-			if self.best_acc_ep + 50 < epoch:
-				print("Early stopping")
-				print(f"\tBest acc is {self.best_acc} at epoch {self.best_acc_ep}")
-				return True
+			# self.visualize()
+		# else:
+			# if self.best_acc_ep + 100 < epoch:
+				# print("Early stopping")
+				# print(f"\tBest acc is {self.best_acc} at epoch {self.best_acc_ep}")
+				# self.visualize()
+				# self.visu.exit()
+				# return True
 		return False
 
 	def fit(self, X, y, epoch=1, minibatch=None):
 		self.losses = []
 		self.accues = []
+		self.epochs = []
+		jmp = 1
+		self.visualize(0)
 		with trange(epoch, unit="Epochs") as pbar:
 			for e in pbar:
 				pbar.set_description(f"Epoch {e}")
@@ -108,40 +129,49 @@ class Model():
 				for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
 					AL = self.forward(X_batch)
 
-					loss = self.f_loss.cost(AL, y_batch)
-					self.losses.append(loss)
+					self.cost(AL, y_batch)
+					# loss = self.f_loss.cost(AL, y_batch)
+					# if True:
+					# 	loss += 
 
 					self.backward(AL, X_batch, y_batch)
 
-					# self._update()
-					self.optimizer.update(self.layers, self.lr)
+					self._update(e)
 
 					acc = accuracy(y, self.predict(X, Threshold=0.5))
+
 					self.accues.append(acc)
+					# self.losses.append(loss)
+					self.epochs.append(e)
+
 					if self.early_stopping(e):
 						return
 
 				pbar.set_postfix(loss=self.losses[-1], accuracy=self.accues[-1])
-				# self._lr_decay(e)
+				if e % jmp == 0:
+					if e == jmp * 10:
+						jmp = e
+					self.visualize(e)
 				# print(f"Updated!")
 
 	def _lr_decay(self, epoch):
 		decay_rate = 1
 		self.lr = (1 / (1 + (decay_rate * epoch))) * self.lr_0
 
-	def _update(self):
-		for l in self.layers:
-			# print(f"{l.grads['dW'].sum()}")
-			l.params['W'] = l.params['W'] - (self.lr * l.grads['dW'])
-			l.params['b'] = l.params['b'] - (self.lr * l.grads['db'])
+	def _update(self, epoch):
+		# self._lr_decay(epoch)
+		self.optimizer.update(self.layers, self.lr)
+		for layer, opti in zip(self.layers, self.optimizer.cache):
+			for param in layer.params.keys():
+				layer.params[param] = layer.params[param] - (self.lr * opti['d' + param])
+				# print(f"{l.grads['dW'].sum()}")
+			# l.params['W'] = l.params['W'] - (self.lr * opt['dW'])
+			# l.params['b'] = l.params['b'] - (self.lr * opt['db'])
 
 
 	def predict(self, X, Threshold=None):
 		# X = self.std_X.apply(X)
-		A = X
-		for i, l in enumerate(self.layers):
-			logging.debug(f"\tForward: layer n*{i}")
-			A = l.forward(A)
+		A = self.forward(X)
 		if Threshold:
 			A = (A > Threshold)
 		y_pred = A
@@ -161,7 +191,7 @@ if __name__ == "__main__":
 	print(f"{y.shape = }")
 	print(f"{y.dtype = }")
 
-	model = Model(lr=1e-5)
+	model = Model(lr=1e-3)
 	model.add_layer(Dense(5, n_x))
 	model.add_layer(Dense(4, 5))
 	model.add_layer(Dense(4, 4))

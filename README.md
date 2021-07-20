@@ -1,7 +1,71 @@
 # NoYetSelfAware
 
-The objective is to create my own complete implementation of a Neural Networks, with the help of numpy
+A beautiful library for DeeplLearning, with the help of numpy
 
+## About
+
+This project is the occasion to reimplement my theoric learning as it grows.
+
+# Summary
+
+### Legend
+|||
+|-|-|
+|⬜|To Do|
+|🚧|Work in Progress|
+|☑️|Done|
+
+|Activation||
+|:-|-:|
+|leakyReLU|☑️|
+|ReLU|☑️|
+|sigmoid|☑️|
+|tanh|☑️|
+
+|Layers||
+|:-|-:|
+|Dense|☑️|
+|Output|☑️|
+|Dropout|⬜|
+|Convolution|⬜|
+|Long Short Term Memory|⬜|
+
+|Optimizers||
+|:-|-:|
+|Gradient Descent|☑️|
+|MiniBatch Gradient Descent|☑️|
+|Stochastic Gradient Descent|☑️|
+|Momentum|☑️|
+|RMSprop|☑️|
+|Adam|☑️|
+
+|Validation||
+|:-|-:|
+|Accuracy|☑️|
+|Recall|⬜|
+|F1_score|⬜|
+
+|Cost||
+|:-|-:|
+|Binary Cross Entropy|☑️|
+|Mean Square Error|⬜|
+|Soft Max|⬜|
+
+|Regularization||
+|:-|-:|
+|L1|⬜|
+|L2|⬜|
+
+|Learning Rate Decay||
+|:-|-:|
+|exponential decay|⬜|
+|staircase decay|⬜|
+
+|Others||
+|:-|-:|
+|Batch Normalization|⬜|
+
+# PyPi Package
 
 ## Installation
 

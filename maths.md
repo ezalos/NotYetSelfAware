@@ -84,3 +84,62 @@ Can be seen as this simplified form:
 $$
 \frac{\partial C}{\partial w} = a_{\rm in} \delta_{\rm out}
 $$
+
+# Optimizers
+Let's write our weight update in the following way:
+$$
+\delta W \equiv \frac{\partial C}{\partial W}
+$$
+The following optimizers equations works similarly for $\frac{\partial C}{\partial b}$
+
+## Momentum
+
+$V\delta W$ should be initialized at $0$
+$$
+V\delta W = (\beta) V\delta W + (1 - \beta) \delta W  
+\newline
+W = W - \alpha \times V\delta W
+$$
+
+## RMSprop
+
+$S\delta W$ should be initialized at $0$
+$$
+S\delta W = (\beta) S\delta W + (1 - \beta) \delta W^2
+\newline
+W = W - \alpha \times \frac{\delta W}{\sqrt{S\delta W} + \epsilon}
+$$
+
+## Adam
+
+
+### 1. Computing the Momentum and RMSprop
+$V\delta W$ and $S\delta W$ should be initialized at $0$
+
+$$
+V\delta W = (\beta_1) V\delta W + (1 - \beta_1) \delta W  
+\newline
+S\delta W = (\beta_2) S\delta W + (1 - \beta_2) \delta W^2
+$$
+
+### 2. Correcting exponentially weighted averages
+$t$ is the umpteenth update
+$$
+V\delta W^{corrected} = \frac{V \delta W}{1 - \beta^t_1}
+\newline
+S\delta W^{corrected} = \frac{S \delta W}{1 - \beta^t_2}
+$$
+
+### 3. Weight update
+
+$$
+W = W - \alpha \times \frac{V\delta W^{corrected}}{\sqrt{S\delta W^{corrected}} + \epsilon}
+\newline
+$$
+
+| HyperParameter | Advised Value |
+|:-|-:|
+|$\alpha$|needs to be tuned|
+|$\beta_1$|$0.9$|
+|$\beta_2$|$0.999$|
+|$\epsilon$|$10^{-8}$|

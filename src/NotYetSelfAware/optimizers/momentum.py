@@ -1,24 +1,36 @@
 from .base import BaseOptimizer
+import numpy as np
 
 class Momentum(BaseOptimizer):
-	def __init__(self, beta=0.9) -> None:
+	def __init__(self, beta=0.9, bias_correction=False) -> None:
 		self.beta = beta
-		self.moments = None
+		self.cache = None
+		self.t = 0
+		self.bias_correction = bias_correction
 
-	def init_moments(self, layers):
+	def init_cache(self, layers):
 		# Exponentially weighted averages
-		self.moments = []
+		self.t = 0
+		self.cache = []
 		for l in layers:
 			elems = {}
 			for param in l.params.keys():
-				elems['Vd' + param] = l.grads['d' + param]
-			self.moments.append(elems)
+				elems['Vd' + param] = np.zeros_like(l.grads['d' + param])
+			self.cache.append(elems)
 
 	def update(self, layers:list, learning_rate):
-		if self.moments == None:
-			self.init_moments(layers)
+		if self.cache == None:
+			self.init_cache(layers)
 		b = self.beta
-		for m, l in zip(self.moments, layers):
+		t = self.t
+		for m, l in zip(self.cache, layers):
 			for param in l.params.keys():
 				m['Vd' + param] = b * m['Vd' + param] + (1 - b) * l.grads['d' + param]
-				l.params[param] = l.params[param] - (learning_rate * m['Vd' + param])
+				# Correcting Exponentially weighted average
+				if self.bias_correction:
+					v_update = m['Vd' + param] / (1 - np.power(b, t))
+				else:
+					v_update = m['Vd' + param]
+				m['d' + param] = v_update
+				# l.params[param] = l.params[param] - (learning_rate * v_update)
+		self.t += 1

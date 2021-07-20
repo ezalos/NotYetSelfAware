@@ -53,6 +53,7 @@ class Base():
 	def _init_params(self, n_units, input_dim):
 		self.params = {
 			'W': np.random.randn(n_units, input_dim) * self._init_weights(),
+			# 'W': np.zeros((n_units, input_dim)) * self._init_weights(),
 			'b': np.zeros((n_units, 1)),
 		}
 
