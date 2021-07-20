@@ -62,6 +62,11 @@ class Layer():
 		line_y_data = (neuron1.y - y_adjustment, neuron2.y + y_adjustment)
 		color = "r" if linewidth <= 0 else "b"
 		linewidth = linewidth * linewidth
+		max_linewidth = 10
+		if linewidth >= max_linewidth:
+			linewidth = max_linewidth
+		elif linewidth <= -max_linewidth:
+			linewidth = -max_linewidth
 		line = plt.Line2D(line_x_data, line_y_data, linewidth=linewidth, c=color)
 		self.ax.add_line(line)
 		# self.lines.append(line)
@@ -141,6 +146,7 @@ class NeuralNetworkVisu():
 		# self.fig.savefig(f"my_img.png", format="png")
 		# self.fig.savefig(f"./assets/raw_img/{e:07}.png", format="png")
 		plt.show()
+		plt.pause(1e-4)
 		# plt.ioff()
 		# plt.ion()
 

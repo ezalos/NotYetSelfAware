@@ -1,27 +1,91 @@
+# Notation
+
+$$
+W^{[layer]}_{unit}
+$$
+
+$$
+X = A^{[0]} = 
+\left[
+  \begin{array}{ccc}
+	| & | &  & | \\
+	| & | &  & | \\
+	X^{(1)} & X^{(2)} & \dots & X^{(m)} \\
+	| & | &  & | \\
+	| & | &  & | \\
+  \end{array}
+\right]
+,
+X \ni \Reals^{n_x \times m}
+$$
+
+
+```python
+W.shape = (n_x, m)
+```
+
 # Forward
+$$
+Z^{[l]} = W^{[l]} \cdot A^{[l-1]} + b^{[l]}
+$$
+
+$$ A^{[l]} = \sigma^{[l]} (Z^{[l]}) $$
+
+While keeping numpy broadcast in mind,
+here are the dimensions of the different matrix/vectors
+
+$$
+\underset{n^{[1]} \times m}{Z^{[1]}}
+= 
+\underset{n^{[1]} \times n^{[0]}}{W^{[1]}}
+\cdot
+\underset{n^{[0]}\times m}{A^{[0]}}
++
+\underset{n^{[1]}\times 1}{b^{[1]}}
+$$
+
 
 $$
 \def\horzbar{\text{--------}}
-Z^{l} = 
+Z^{[l]} = 
 \left[
   \begin{array}{ccc}
-    \horzbar & w^{T}_{1} & \horzbar \\
-    \horzbar & w^{T}_{2} & \horzbar \\
-    \horzbar & w^{T}_{3} & \horzbar \\
-    \horzbar & w^{T}_{4} & \horzbar \\  
+    \horzbar & w^{[l]T}_{1} & \horzbar \\
+    \horzbar & w^{[l]T}_{2} & \horzbar \\
+    \horzbar & w^{[l]T}_{3} & \horzbar \\
+    \horzbar & w^{[l]T}_{4} & \horzbar \\  
   \end{array}
 \right]
+\cdot
 \begin{bmatrix}
-           x_{1} \\
-           x_{2} \\
-           \vdots \\
-           x_{m}
-         \end{bmatrix}
+	x_{1} \\
+	x_{2} \\
+	x_{3} \\
+	x_{4} \\
+	\vdots \\
+	x_{m}
+\end{bmatrix}
++
+\left[
+  \begin{array}{ccc}
+    b^{[l]}_{1} \\
+    b^{[l]}_{2} \\
+    b^{[l]}_{3} \\
+    b^{[l]}_{4} \\
+  \end{array}
+\right] = 
+\left[
+  \begin{array}{ccc}
+	| & | &  & | \\
+	| & | &  & | \\
+	Z^{[l](1)} & Z^{[l](2)} & \dots & Z^{[l](m)} \\
+	| & | &  & | \\
+	| & | &  & | \\
+  \end{array}
+\right]
+
 $$
 
-$$Z^l = W^{l} \cdot A^{l-1} + b$$
-
-$$ A^l = \sigma (Z^l) $$
 
 # Backpropagation
 

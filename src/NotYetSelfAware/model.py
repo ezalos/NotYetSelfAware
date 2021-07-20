@@ -25,7 +25,7 @@ if True:
 	root.addHandler(handler)
 
 class Model():
-	def __init__(self, lr=None, seed=None) -> None:
+	def __init__(self, lr, seed=None) -> None:
 		self.seed = seed
 		if seed:
 			np.random.seed(seed=seed)
@@ -86,7 +86,8 @@ class Model():
 		self.losses.append(loss)
 
 	def backward(self, AL, X_batch, y_batch):
-		self.layers[-1].backward(AL, y_batch, self.layers[-2].cache['A'])
+		dAL = self.f_loss.backward(AL, y_batch)
+		self.layers[-1].backward(dAL, self.layers[-2].cache['A'])
 		for i in range(len(self.layers[:-1]))[::-1]:
 			# logging.debug(f"\tBackward: layer n*{i}")
 			if i == 0:
@@ -120,7 +121,7 @@ class Model():
 		self.accues = []
 		self.epochs = []
 		jmp = 1
-		self.visualize(0)
+		# self.visualize(0)
 		with trange(epoch, unit="Epochs") as pbar:
 			for e in pbar:
 				pbar.set_description(f"Epoch {e}")
@@ -149,21 +150,25 @@ class Model():
 
 				pbar.set_postfix(loss=self.losses[-1], accuracy=self.accues[-1])
 				if e % jmp == 0:
-					if e == jmp * 10:
+					if e >= jmp * 2:
 						jmp = e
-					self.visualize(e)
+						# print(f"{self.lr = }")
+					# self.visualize(e)
 				# print(f"Updated!")
 
 	def _lr_decay(self, epoch):
-		decay_rate = 1
+		decay_rate = 0.5
 		self.lr = (1 / (1 + (decay_rate * epoch))) * self.lr_0
+		# print(f"{self.lr} =  (1 / ( 1 + ({decay_rate} * {epoch}) * {self.lr_0})")
 
 	def _update(self, epoch):
 		# self._lr_decay(epoch)
 		self.optimizer.update(self.layers, self.lr)
+		weight_decay = 0 * self.lr
 		for layer, opti in zip(self.layers, self.optimizer.cache):
 			for param in layer.params.keys():
-				layer.params[param] = layer.params[param] - (self.lr * opti['d' + param])
+				layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
+					(self.lr * opti['d' + param])
 				# print(f"{l.grads['dW'].sum()}")
 			# l.params['W'] = l.params['W'] - (self.lr * opt['dW'])
 			# l.params['b'] = l.params['b'] - (self.lr * opt['db'])
@@ -185,13 +190,17 @@ if __name__ == "__main__":
 	n_L = 2
 
 	X, y = Datasets().generate(m, dataset="blobs", n_features=n_x, n_targets=n_L)
+	# y = np.stack([y, ~y], axis=0).reshape((n_L, m))
 	X = X.T
+	std = Standardize()
+	std.fit(X)
+	X = std.apply(X)
 	print(f"{X.shape = }")
 	print(f"{X.dtype = }")
 	print(f"{y.shape = }")
 	print(f"{y.dtype = }")
 
-	model = Model(lr=1e-3)
+	model = Model(lr=1e-1)
 	model.add_layer(Dense(5, n_x))
 	model.add_layer(Dense(4, 5))
 	model.add_layer(Dense(4, 4))

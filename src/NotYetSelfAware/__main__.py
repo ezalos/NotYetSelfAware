@@ -1,4 +1,5 @@
 # import .__init__
+from numpy.random.mtrand import random
 from model import Model
 from layers import Dense, Output
 import pandas as pd
@@ -37,7 +38,7 @@ def load_dataset(path):
 
 
 def build_model(lr, seed, layers):
-	model = Model(lr=1e-4, seed=seed)
+	model = Model(lr=lr, seed=seed)
 	n_l = len(layers) - 1
 	for i in range(n_l):
 		if i < n_l -1:
@@ -47,7 +48,19 @@ def build_model(lr, seed, layers):
 	return model
 
 
+def lr():
+	pow = np.random.randint(1, 7)
+	return (10 ** -pow) * np.random.random()
 
+
+def run():
+	seed = np.random.randint(1, 1_000_000_000)
+	l_r = lr()
+	model = build_model(l_r, seed, layers)
+	model.fit(X=X, y=y, epoch=epochs, minibatch=None)
+	y_pred = model.predict(X=X, Threshold=0.5)
+	acc = accuracy(y, y_pred)
+	return l_r, seed, acc
 
 dataset_path = "src/NotYetSelfAware/datasets/cache/data.csv"
 
@@ -56,7 +69,7 @@ seed = None
 n_x = X.shape[0]
 mid = 10
 layers = [n_x, n_x, n_x, n_x, 1]
-epochs = 10_000
+epochs = (2 ** 13) + 1
 
 total_epoch = 0
 acc = 0
@@ -64,21 +77,10 @@ acc = 0
 # get_val = 
 histor = []
 
-# for i in range(100_000):
-	# seed = i
-model = build_model(1e-3, seed, layers)
-# y_pred = model.predict(X=X, Threshold=0.5)
-# acc = accuracy(y, y_pred)
-# acc_0 = acc
-# print(f'Accuracy 0: {acc_0}%')
-model.fit(X=X, y=y, epoch=epochs, minibatch=None)
-y_pred = model.predict(X=X, Threshold=0.5)
-acc = accuracy(y, y_pred)
-histor.append([i, acc])
-histor.sort(key=lambda a: a[1], reverse=True)
-print(f"Best seed {histor[0][0]} with {histor[0][1]}% acc")
-
-	# print(f'{acc   = }%')
-	# total_epoch += epochs
-# print(f"Total epochs: {total_epoch}")
-# print(f"{acc_0 = }%")
+while True:
+	elem = run()
+	histor.append(elem)
+	histor.sort(key=lambda a: a[1], reverse=True)
+	print(f"Best lr {histor[0][0]} with {histor[0][-1]} acc -> {histor[0]}")
+	# for h in histor:
+	# 	print(h[-1])
