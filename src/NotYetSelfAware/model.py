@@ -4,7 +4,7 @@ from datasets.datasets import Datasets
 from validation import accuracy
 from cost import BinaryCrossEntropy
 from preprocessing import Standardize
-from optimizers import Adam
+from optimizers import BaseOptimizer, Adam
 from visualize import NeuralNetworkVisu
 import logging
 from tqdm import trange
@@ -36,19 +36,24 @@ class Model():
 		self.lr = self.lr_0
 		# self.std_X = Standardize()
 		# self.std_y = Standardize()
-		self.optimizer = Adam()
+		self.optimizer = BaseOptimizer()
 		self.losses = []
 		self.accues = []
 		self.best_acc = -1
 		self.best_acc_ep = -1
-		self.visu = NeuralNetworkVisu()
+		self.threshold = 0.5
+
+		self.visu_on = True
+		if self.visu_on:
+			self.visu = NeuralNetworkVisu()
 
 	def add_layer(self, layer):
 		self.layers.append(layer)
 		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
-		if len(self.visu.layers) == 0:
-			self.visu.add_layer(layer.shape[1])
-		self.visu.add_layer(layer.shape[0])
+		if self.visu_on:
+			if len(self.visu.layers) == 0:
+				self.visu.add_layer(layer.shape[1])
+			self.visu.add_layer(layer.shape[0])
 
 	def visualize(self, e):
 		self.visu.update_weights(self.layers, self.losses, self.accues)
@@ -106,7 +111,8 @@ class Model():
 		if self.best_acc < self.accues[-1]:
 			self.best_acc = self.accues[-1]
 			self.best_acc_ep = epoch
-			# self.visualize()
+			# if self.visu_on:
+			# 	self.visualize()
 		# else:
 			# if self.best_acc_ep + 100 < epoch:
 				# print("Early stopping")
@@ -139,9 +145,7 @@ class Model():
 
 					self._update(e)
 
-					acc = accuracy(y, self.predict(X, Threshold=0.5))
-
-					self.accues.append(acc)
+					self.score(X, y)
 					# self.losses.append(loss)
 					self.epochs.append(e)
 
@@ -153,8 +157,34 @@ class Model():
 					if e >= jmp * 2:
 						jmp = e
 						# print(f"{self.lr = }")
-					# self.visualize(e)
+					if self.visu_on:
+						self.visualize(e)
 				# print(f"Updated!")
+		if self.visu_on:
+			self.visu.exit()
+	
+	def score(self, X, y):
+		pred = self.predict(X, Threshold=self.threshold)
+		acc = accuracy(y, pred)
+		# if acc > 0.63:
+		# 	self.threshold = self.test_threshold(X, y)
+			# for i, (y_, p) in enumerate(zip(y[0], pred[0])):
+			# 	if y_ != p:
+			# 		print(f"{i}\ty:{y_} {p}:p")
+		self.accues.append(acc)
+
+	def test_threshold(self, X, y):
+		sav = []
+		for t in [0.01 * i for i in range(1, 100)]:
+			pred = self.predict(X, Threshold=t)
+			acc = accuracy(y, pred)
+			sav.append([t, acc])
+		sav.sort(key=lambda x:x[1])
+		# print(f"Acc = {sav[0][1]} for t = {sav[0][0]}")
+		# print(f"Acc = {sav[-1][1]} for t = {sav[-1][0]}")
+		return sav[-1][1]
+
+
 
 	def _lr_decay(self, epoch):
 		decay_rate = 0.5
@@ -178,15 +208,15 @@ class Model():
 		# X = self.std_X.apply(X)
 		A = self.forward(X)
 		if Threshold:
-			A = (A > Threshold)
+			A = (A > Threshold).astype(np.int64)
 		y_pred = A
 		# y_pred = self.std_y.unapply(y_pred)
 		return y_pred
 
 
 if __name__ == "__main__":
-	m = 1000
-	n_x = 5
+	m = 569
+	n_x = 31
 	n_L = 2
 
 	X, y = Datasets().generate(m, dataset="blobs", n_features=n_x, n_targets=n_L)
@@ -202,9 +232,9 @@ if __name__ == "__main__":
 
 	model = Model(lr=1e-1)
 	model.add_layer(Dense(5, n_x))
-	model.add_layer(Dense(4, 5))
-	model.add_layer(Dense(4, 4))
-	model.add_layer(Dense(3, 4))
+	# model.add_layer(Dense(10, 20))
+	model.add_layer(Dense(3, 5))
+	# model.add_layer(Dense(3, 4))
 	model.add_layer(Output(1, 3, activation="sigmoid"))
 
 	total_epoch = 0

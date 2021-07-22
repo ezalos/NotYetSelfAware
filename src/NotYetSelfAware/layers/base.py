@@ -10,7 +10,7 @@ class Base():
               input_dim: int,
               seed=None,
               init_coef=0.01,
-              activation="ReLU",
+              activation="LeakyReLU",
               learning_rate=0.01,
               debug=False):
 		"""[summary]
@@ -90,10 +90,6 @@ class Base():
 
 	def backward(self, dA_m1, dA_p1, opti=True):
 		raise NotImplemented
-
-	def update(self, params, grads):
-		params['W'] = params['W'] - (self.learning_rate * grads['dW'])
-		params['b'] = params['b'] - (self.learning_rate * grads['db'])
 
 	def __str__(self) -> str:
 		msg = f"{' ' * 2}"

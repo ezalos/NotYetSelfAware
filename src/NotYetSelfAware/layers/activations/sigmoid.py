@@ -18,4 +18,5 @@ class Sigmoid(BaseActivation):
 	def backward(self, Z):
 		A = self.forward(Z)
 		dA = A * (1 - A)
+		#change backward
 		return dA

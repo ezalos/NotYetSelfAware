@@ -21,8 +21,11 @@ def load_dataset(path):
 	X = df_X.to_numpy()
 	y = df_y.to_numpy()
 
+	# print(y)
 	y[y == 'M'] = 1
+	# print(y)
 	y[y == 'B'] = 0
+	# print(y)
 
 	y = y.astype(np.int64)
 	y = y.reshape(1, -1)
@@ -30,7 +33,7 @@ def load_dataset(path):
 	std_X = Standardize()
 	std_X.fit(X)
 	X = std_X.apply(X)
-
+	print(X)
 	print(f"{X.shape = }")
 	print(f"{y.shape = }")
 
@@ -55,8 +58,10 @@ def lr():
 
 def run():
 	seed = np.random.randint(1, 1_000_000_000)
-	l_r = lr()
+	l_r = 1e-1
+	print(f"{l_r = } & {seed = }")
 	model = build_model(l_r, seed, layers)
+	model.score(X, y)
 	model.fit(X=X, y=y, epoch=epochs, minibatch=None)
 	y_pred = model.predict(X=X, Threshold=0.5)
 	acc = accuracy(y, y_pred)
@@ -68,19 +73,22 @@ X, y = load_dataset(dataset_path)
 seed = None
 n_x = X.shape[0]
 mid = 10
-layers = [n_x, n_x, n_x, n_x, 1]
-epochs = (2 ** 13) + 1
+layers = [n_x, 5, 3, 1]
+epochs = (2 ** 16) + 1
 
 total_epoch = 0
 acc = 0
 
 # get_val = 
 histor = []
+import json
 
 while True:
 	elem = run()
 	histor.append(elem)
-	histor.sort(key=lambda a: a[1], reverse=True)
+	histor.sort(key=lambda a: a[-1], reverse=True)
 	print(f"Best lr {histor[0][0]} with {histor[0][-1]} acc -> {histor[0]}")
+	# with open('hp.json', 'w+') as f:
+	# 	json.dump(histor, f, indent=4)
 	# for h in histor:
 	# 	print(h[-1])

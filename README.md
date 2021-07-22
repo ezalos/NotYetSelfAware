@@ -24,6 +24,7 @@ This project is the occasion to reimplement my theoric learning as it grows.
 |Dropout|⬜|
 |Batch Normalization|⬜|
 |Convolution|⬜|
+|RNN|⬜|
 |Long Short Term Memory|⬜|
 
 |Optimizers||
@@ -37,7 +38,9 @@ This project is the occasion to reimplement my theoric learning as it grows.
 
 |Validation||
 |:-|-:|
+|Confusion Matrix|⬜|
 |Accuracy|✔️|
+|Precision|⬜|
 |Recall|⬜|
 |F1_score|⬜|
 
@@ -54,6 +57,7 @@ This project is the occasion to reimplement my theoric learning as it grows.
 
 |Learning Rate Decay||
 |:-|-:|
+|time based decay|✔️|
 |exponential decay|⬜|
 |staircase decay|⬜|
 

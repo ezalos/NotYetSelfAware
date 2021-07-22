@@ -2,6 +2,14 @@
 
 $$
 W^{[layer]}_{unit}
+\text{, of shape }
+(n^{[layer]} \times n^{[layer - 1]})
+$$
+
+$$
+X^{(example)}_{feature}
+\text{, of shape }
+(n_x \times m)
 $$
 
 $$
@@ -18,11 +26,6 @@ X = A^{[0]} =
 ,
 X \ni \Reals^{n_x \times m}
 $$
-
-
-```python
-W.shape = (n_x, m)
-```
 
 # Forward
 $$
@@ -58,12 +61,10 @@ Z^{[l]} =
 \right]
 \cdot
 \begin{bmatrix}
-	x_{1} \\
-	x_{2} \\
-	x_{3} \\
-	x_{4} \\
-	\vdots \\
-	x_{m}
+	x_{1}^{(1)} & | &  & | & \\
+	x_{2}^{(1)} & x^{(2)} & \dots & x^{(m)} & \\
+	x_{3}^{(1)} & | &  & | & \\
+	x_{4}^{(1)} & | &  & | & \\
 \end{bmatrix}
 +
 \left[
@@ -93,7 +94,7 @@ $\delta^l \equiv \delta A^l$
 
 | Definition                       | Equation |
 |:-                                |-:|
-|Output layer error                |$\delta^L = \nabla_a C \odot \sigma'(z^L)$|
+|Output layer error                |${\color{green}\delta^L} = \nabla_a C \odot \sigma'(z^L)$|
 |layer error                       |$\delta^l = ((w^{l+1})^T \delta^{l+1}) \odot \sigma'(z^l)$|
 |Cost partial derivate for Bias    |$\frac{\partial C}{\partial b^l_j} =  \delta^l_j$|
 |Cost partial derivate for Weights |$\frac{\partial C}{\partial w^l_{jk}} = a^{l-1}_k \delta^l_j$|
@@ -109,6 +110,17 @@ $$
 \delta^L = \nabla_a C \odot \sigma'(z^L)
 $$
 
+|Name|$C$|$\nabla_a C$|
+|:-|:-|:-|
+|Mean Squared Error|$\frac{1}{2}∑_j(y_j−a^L_j)^2$|$a^L-y$|
+|Binary Cross Entropy|$y\log{a^L} + (1-y)\log(1-a^L)$|$\frac{-y}{a^L}+\frac{1-y}{1-a^L}$|
+|SoftMax|$\sigma(\vec{z})_{i}=\frac{e^{z_{i}}}{\sum_{j=1}^{n^L} e^{z_{j}}}$|$$|
+||$$|$$|
+
+SoftMax derivation
+$$
+\frac{\partial L}{\partial o_i}=-\sum_ky_k\frac{\partial \log p_k}{\partial o_i}=-\sum_ky_k\frac{1}{p_k}\frac{\partial p_k}{\partial o_i}\\=-y_i(1-p_i)-\sum_{k\neq i}y_k\frac{1}{p_k}({\color{red}{-p_kp_i}})\\=-y_i(1-p_i)+\sum_{k\neq i}y_k({\color{red}{p_i}})\\=-y_i+\color{blue}{y_ip_i+\sum_{k\neq i}y_k({p_i})}\\=\color{blue}{p_i\left(\sum_ky_k\right)}-y_i=p_i-y_i
+$$
 
 For example if we use the quadratic cost function
 $$

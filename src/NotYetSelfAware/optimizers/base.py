@@ -1,7 +1,7 @@
 import numpy as np
 
 class BaseOptimizer():
-	def __init__(self, layers) -> None:
+	def __init__(self) -> None:
 		self.cache = None
 		self.t = 0
 
