@@ -6,16 +6,14 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class Sigmoid(BaseActivation):
+class LU(BaseActivation):
 	def __init__(self) -> None:
 		pass
 
 	def forward(self, Z):
 		logger.debug(f"{self.__class__.__name__}: forward()")
-		A = 1 / (1 + np.exp(-Z))
-		return A
+		return Z
 
 	def backward(self, Z):
-		A = self.forward(Z)
-		dA = A * (1 - A)
-		return dA
+		# TODO: check if it makes sense
+		return Z

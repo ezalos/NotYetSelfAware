@@ -8,30 +8,32 @@ import numpy as np
 import logging
 import sys
 from preprocessing import Standardize
+from config import config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def load_dataset(path):
 	col_names = [str(i) for i in range(32)]
-	df = pd.read_csv(dataset_path, names=col_names)
+	df = pd.read_csv(path, names=col_names)
 	df_y = df['1']
 	y = df_y
-	df_X = df.drop(labels='1', axis=1)
+	df_X = df.drop(labels=['0', '1'], axis=1)
 	X = df_X.to_numpy()
 	y = df_y.to_numpy()
 
-	# print(y)
+	print(y)
 	y[y == 'M'] = 1
 	# print(y)
 	y[y == 'B'] = 0
-	# print(y)
+	print(y)
 
 	y = y.astype(np.int64)
 	y = y.reshape(1, -1)
 	X = X.reshape(X.shape[::-1])
 	std_X = Standardize()
 	std_X.fit(X)
+	print(X)
 	X = std_X.apply(X)
 	print(X)
 	print(f"{X.shape = }")
@@ -41,7 +43,7 @@ def load_dataset(path):
 
 
 def build_model(lr, seed, layers):
-	model = Model(lr=lr, seed=seed)
+	model = Model(learning_rate=lr, seed=seed, visu=False)
 	n_l = len(layers) - 1
 	for i in range(n_l):
 		if i < n_l -1:
@@ -58,6 +60,7 @@ def lr():
 
 def run():
 	seed = np.random.randint(1, 1_000_000_000)
+	# seed = 466880822
 	l_r = 1e-1
 	print(f"{l_r = } & {seed = }")
 	model = build_model(l_r, seed, layers)
@@ -67,13 +70,11 @@ def run():
 	acc = accuracy(y, y_pred)
 	return l_r, seed, acc
 
-dataset_path = "src/NotYetSelfAware/datasets/cache/data.csv"
-
-X, y = load_dataset(dataset_path)
+X, y = load_dataset(config.mlp_dataset_path)
 seed = None
 n_x = X.shape[0]
 mid = 10
-layers = [n_x, 5, 3, 1]
+layers = [n_x, 3, 3, 1]
 epochs = (2 ** 16) + 1
 
 total_epoch = 0

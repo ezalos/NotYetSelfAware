@@ -3,7 +3,7 @@ from .activations import Tanh, Sigmoid, ReLU, LeakyReLU
 # from .activations.sigmoid import Sigmoid
 
 
-class Base():
+class BaseLayer():
 	name = "Base"
 	def __init__(self,
               n_units: int,

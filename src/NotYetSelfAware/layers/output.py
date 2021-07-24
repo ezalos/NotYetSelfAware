@@ -1,13 +1,13 @@
 import numpy as np
-# from base import Base
-from .dense import Dense
+from .base import BaseLayer
+# from .dense import Dense
 import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class Output(Dense):
+class Output(BaseLayer):
 	name = "Output"
 
 	def forward(self, A_m1):

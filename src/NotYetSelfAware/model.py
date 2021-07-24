@@ -9,6 +9,10 @@ from visualize import NeuralNetworkVisu
 import logging
 from tqdm import trange
 import sys
+from typing import List
+from config import config
+import pickle
+import os
 
 # LOGGER INITIALISATION
 root = logging.getLogger()
@@ -25,24 +29,42 @@ if True:
 	root.addHandler(handler)
 
 class Model():
-	def __init__(self, lr, seed=None) -> None:
+	def __init__(self, 
+				 learning_rate: float,
+				 loss = BinaryCrossEntropy(),
+				 optimizer = BaseOptimizer(),
+				 seed: int = None,
+				 early_stopping:bool = False,
+				 lr_decay = False,#str = "",
+				 weight_decay: float = 0,
+				 scores: List[str] = ["accuracy"],
+				 save_file: str = "default",
+				 visu: bool = False) -> None:
 		self.seed = seed
 		if seed:
 			np.random.seed(seed=seed)
 		
 		self.layers =  []
-		self.f_loss = BinaryCrossEntropy()
-		self.lr_0 = lr
-		self.lr = self.lr_0
-		# self.std_X = Standardize()
-		# self.std_y = Standardize()
-		self.optimizer = BaseOptimizer()
-		self.losses = []
-		self.accues = []
-		self.best_acc = -1
-		self.best_acc_ep = -1
-		self.threshold = 0.5
 
+		self.lr_0 = learning_rate
+		self.lr = self.lr_0
+
+		self.loss = loss
+		self.optimizer = optimizer
+
+		self.early_stopping = early_stopping
+		self.lr_decay = lr_decay
+		self.weight_decay = weight_decay
+
+		self.history = {'loss': []}
+		self.verbose_update = {}
+		self.scores = scores
+		for s in scores:
+			self.history[s] = []
+
+		self.save_file = save_file
+		
+		self.threshold = 0.5
 		self.visu_on = True
 		if self.visu_on:
 			self.visu = NeuralNetworkVisu()
@@ -55,43 +77,31 @@ class Model():
 				self.visu.add_layer(layer.shape[1])
 			self.visu.add_layer(layer.shape[0])
 
-	def visualize(self, e):
-		self.visu.update_weights(self.layers, self.losses, self.accues)
-		self.visu.draw(e)
-			
-
-	def get_minibatch(self, X, y, size):
-		# self.std_X.fit(X)
-		# self.std_y.fit(y)
+	def _get_minibatch(self, X, y, size):
 		if size == None:
 			size = X.shape[1]
-		# print(X.shape)
 		m = X.shape[1] // size
-		# print(m)
 		for i in range(m):
 			start = size * i
 			end = size * (i + 1)
 			X_batch = X[:, start:end]
 			y_batch = y[:, start:end]
-			# X_batch = self.std_X.apply(X_batch)
-			# y_batch = self.std_y.apply(y_batch)
-			# sys.exit()
 			yield (X_batch, y_batch)
 
-	def forward(self, X_batch):
+	def _forward(self, X_batch):
 		A = X_batch
 		for i, l in enumerate(self.layers):
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
 		return A
 
-	def cost(self, AL, y_batch):
-		loss = self.f_loss.cost(AL, y_batch)
+	def _cost(self, AL, y_batch):
+		loss = self.loss.cost(AL, y_batch)
+		self.history['loss'].append(loss)
+		self.verbose_update['loss'] = loss
 
-		self.losses.append(loss)
-
-	def backward(self, AL, X_batch, y_batch):
-		dAL = self.f_loss.backward(AL, y_batch)
+	def _backward(self, AL, X_batch, y_batch):
+		dAL = self.loss.backward(AL, y_batch)
 		self.layers[-1].backward(dAL, self.layers[-2].cache['A'])
 		for i in range(len(self.layers[:-1]))[::-1]:
 			# logging.debug(f"\tBackward: layer n*{i}")
@@ -103,116 +113,101 @@ class Model():
 									self.layers[i + 1].grads,
 									A_m1)
 
-	def save(self):
-		pass
-
-	def early_stopping(self, epoch):
+	def _early_stopping(self, epoch):
+		if not self.early_stopping:
+			return False
 		# TODO: cleaner solution
-		if self.best_acc < self.accues[-1]:
-			self.best_acc = self.accues[-1]
-			self.best_acc_ep = epoch
-			# if self.visu_on:
-			# 	self.visualize()
-		# else:
-			# if self.best_acc_ep + 100 < epoch:
-				# print("Early stopping")
-				# print(f"\tBest acc is {self.best_acc} at epoch {self.best_acc_ep}")
-				# self.visualize()
-				# self.visu.exit()
-				# return True
+		nb_epochs = len(self.history['accuracy'])
+		last_best = nb_epochs - np.argmax(self.history['accuracy'][::-1])
+		if last_best + 100 < nb_epochs:
+			print("Early stopping")
+			print(f"\tBest acc is {self.history['accuracy'][last_best]} at epoch {last_best}")
+			self.visualize()
+			self.visu.exit()
+			return True
 		return False
 
-	def fit(self, X, y, epoch=1, minibatch=None):
-		self.losses = []
-		self.accues = []
-		self.epochs = []
+	def _verbose(self, pbar, e, jmp):
+		pbar.set_postfix(**self.verbose_update)
+		if e % jmp == 0:
+			if e >= jmp * 2:
+				jmp = e
+			if self.visu_on:
+				self.visualize(e)
+		return jmp
+
+	def fit(self, X, y, epoch=1, minibatch=None, verbose=True, train_test_split=False):
 		jmp = 1
-		# self.visualize(0)
-		with trange(epoch, unit="Epochs") as pbar:
+		with trange(epoch) as pbar:
+			pbar.set_description("Fit <3")
 			for e in pbar:
-				pbar.set_description(f"Epoch {e}")
-				# root.info(f"Epoch {e + 1}/ {epoch}")
 
-				for i, (X_batch, y_batch) in enumerate(self.get_minibatch(X, y, minibatch)):
-					AL = self.forward(X_batch)
-
-					self.cost(AL, y_batch)
-					# loss = self.f_loss.cost(AL, y_batch)
-					# if True:
-					# 	loss += 
-
-					self.backward(AL, X_batch, y_batch)
+				for X_batch, y_batch in self._get_minibatch(X, y, minibatch):
+					AL = self._forward(X_batch)
+					self._cost(AL, y_batch)
+					self._backward(AL, X_batch, y_batch)
 
 					self._update(e)
-
 					self.score(X, y)
-					# self.losses.append(loss)
-					self.epochs.append(e)
 
-					if self.early_stopping(e):
+					jmp = self._verbose(pbar, e, jmp)
+					if self._early_stopping(e):
 						return
-
-				pbar.set_postfix(loss=self.losses[-1], accuracy=self.accues[-1])
-				if e % jmp == 0:
-					if e >= jmp * 2:
-						jmp = e
-						# print(f"{self.lr = }")
-					if self.visu_on:
-						self.visualize(e)
-				# print(f"Updated!")
 		if self.visu_on:
 			self.visu.exit()
 	
 	def score(self, X, y):
 		pred = self.predict(X, Threshold=self.threshold)
-		acc = accuracy(y, pred)
-		# if acc > 0.63:
-		# 	self.threshold = self.test_threshold(X, y)
-			# for i, (y_, p) in enumerate(zip(y[0], pred[0])):
-			# 	if y_ != p:
-			# 		print(f"{i}\ty:{y_} {p}:p")
-		self.accues.append(acc)
 
-	def test_threshold(self, X, y):
-		sav = []
-		for t in [0.01 * i for i in range(1, 100)]:
-			pred = self.predict(X, Threshold=t)
+		scores = self.history.keys()
+		if "accuracy" in scores:
 			acc = accuracy(y, pred)
-			sav.append([t, acc])
-		sav.sort(key=lambda x:x[1])
-		# print(f"Acc = {sav[0][1]} for t = {sav[0][0]}")
-		# print(f"Acc = {sav[-1][1]} for t = {sav[-1][0]}")
-		return sav[-1][1]
+			self.history["accuracy"].append(acc)
+			self.verbose_update['accuracy'] = acc
 
-
+	def predict(self, X, Threshold=None):
+		A = self._forward(X)
+		if Threshold:
+			A = (A > Threshold).astype(np.int64)
+		y_pred = A
+		return y_pred
 
 	def _lr_decay(self, epoch):
 		decay_rate = 0.5
 		self.lr = (1 / (1 + (decay_rate * epoch))) * self.lr_0
-		# print(f"{self.lr} =  (1 / ( 1 + ({decay_rate} * {epoch}) * {self.lr_0})")
 
 	def _update(self, epoch):
-		# self._lr_decay(epoch)
+		if self.lr_decay:
+			self._lr_decay(epoch)
 		self.optimizer.update(self.layers, self.lr)
-		weight_decay = 0 * self.lr
+		weight_decay = self.weight_decay
 		for layer, opti in zip(self.layers, self.optimizer.cache):
 			for param in layer.params.keys():
 				layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
 					(self.lr * opti['d' + param])
-				# print(f"{l.grads['dW'].sum()}")
-			# l.params['W'] = l.params['W'] - (self.lr * opt['dW'])
-			# l.params['b'] = l.params['b'] - (self.lr * opt['db'])
 
+	def save(self):
+		path = config.cache_folder + self.save_file + '.pkl'
+		if not os.path.exists(config.cache_folder):
+			print(f'{config.cache_folder} does not exist: creating it')
+			os.makedirs(config.cache_folder)
 
-	def predict(self, X, Threshold=None):
-		# X = self.std_X.apply(X)
-		A = self.forward(X)
-		if Threshold:
-			A = (A > Threshold).astype(np.int64)
-		y_pred = A
-		# y_pred = self.std_y.unapply(y_pred)
-		return y_pred
+		with open(path, 'wb') as f:
+			pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+	def load(self, save_file=""):
+		save_file = save_file if save_file else self.save_file
+		path = config.cache_folder + save_file + '.pkl'
+		with open(path, 'rb') as f:
+			self = pickle.load(f)
+		return self
+
+	def visualize(self, e):
+		self.visu.update_weights(self.layers, self.history['loss'], self.history['accuracy'])
+		self.visu.draw(e)
+
+	# def __str__(self) -> str:
+	# 	pass
 
 if __name__ == "__main__":
 	m = 569
@@ -230,7 +225,7 @@ if __name__ == "__main__":
 	print(f"{y.shape = }")
 	print(f"{y.dtype = }")
 
-	model = Model(lr=1e-1)
+	model = Model(learning_rate=1e-1)
 	model.add_layer(Dense(5, n_x))
 	# model.add_layer(Dense(10, 20))
 	model.add_layer(Dense(3, 5))

@@ -13,7 +13,7 @@ class Neuron():
 
 	def draw(self):
 		circle = plt.Circle(
-			(self.x, self.y), radius=self.neuron_radius, fill=False)
+			(self.x, self.y), radius=self.neuron_radius, fill=True, edgecolor="black",facecolor="white")
 		self.ax.add_patch(circle)
 		# plt.gca().add_patch(circle)
 
@@ -80,7 +80,6 @@ class Layer():
 	def draw(self):
 		for this_layer_neuron_index in range(len(self.neurons)):
 			neuron = self.neurons[this_layer_neuron_index]
-			neuron.draw()
 			if self.previous_layer:
 				for previous_layer_neuron_index in range(len(self.previous_layer.neurons)):
 					previous_layer_neuron = self.previous_layer.neurons[previous_layer_neuron_index]
@@ -88,6 +87,7 @@ class Layer():
 														 previous_layer_neuron_index]
 					self.__line_between_two_neurons(
 						neuron, previous_layer_neuron, weight)
+			neuron.draw()
 
 
 class NeuralNetworkVisu():
@@ -100,11 +100,15 @@ class NeuralNetworkVisu():
 			'number_of_neurons_in_widest_layer' : -1,
 		}
 		self.hori_size = 20
-		self.vert_size = 8
-		self.fig = plt.figure(figsize=(self.hori_size, self.vert_size))
+		self.vert_size = 8 + 4
+		self.fig = plt.figure(
+			figsize=(self.hori_size, self.vert_size), facecolor='whitesmoke')
 		grid = plt.GridSpec(2, 4, wspace=0.1, hspace=0.2)
 		self.ax_network = self.fig.add_subplot(grid[:, :2])
 		self.ax_losses = self.fig.add_subplot(grid[0, 2:])
+		# self.ax_accues = self.ax_losses.twinx()
+		self.loss_color = "tab:red"
+		self.acc_color = "tab:blue"
 		self.ax_accues = self.fig.add_subplot(grid[1, 2:])
 		plt.ion()
 
@@ -133,14 +137,27 @@ class NeuralNetworkVisu():
 			# layer.clean()
 			layer.draw()
 		self.ax_network.axis('scaled')
+		self.ax_network.axis('off')
 		self.ax_network.set_title("Neural Network")
+		# self.ax_network.set_facecolor('red')
 
-		self.ax_losses.plot(self.losses, c='y', label="MSE(y, y_)")
-		self.ax_losses.set_title("Loss")
+		# self.ax_losses.set_xlabel('Epochs')
+
+		self.ax_losses.set_ylabel("Loss", color=self.loss_color)
+		self.ax_losses.plot(self.losses, label="Loss", color=self.loss_color)
+		self.ax_losses.tick_params(axis='y', labelcolor=self.loss_color)
+		# self.ax_losses.set_facecolor('lightcyan')
 		# self.ax_losses.axis('scaled')
 		
-		self.ax_accues.plot(self.accues, c='y', label="MSE(y, y_)")
-		self.ax_accues.set_title("Accuracy")
+		# self.ax_losses.set_title("Losses")
+
+		# self.ax_accues.yaxis.tick_right()
+		self.ax_accues.set_ylabel("Accuracy", color=self.acc_color)
+		self.ax_accues.plot(self.accues, label="Accuracy", color=self.acc_color)
+		self.ax_accues.tick_params(axis='y', labelcolor=self.acc_color)
+		self.ax_accues.set_xlabel('Epochs')
+
+		# self.ax_accues.set_title("Accuracy")
 		plt.pause(1e-4)
 		# self.ax_accues.axis('scaled')
 		# self.fig.savefig(f"my_img.png", format="png")
