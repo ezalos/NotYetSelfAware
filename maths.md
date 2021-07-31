@@ -114,8 +114,13 @@ $$
 |:-|:-|:-|
 |Mean Squared Error|$\frac{1}{2}∑_j(y_j−a^L_j)^2$|$a^L-y$|
 |Binary Cross Entropy|$y\log{a^L} + (1-y)\log(1-a^L)$|$\frac{-y}{a^L}+\frac{1-y}{1-a^L}$|
-|SoftMax|$\sigma(\vec{z})_{i}=\frac{e^{z_{i}}}{\sum_{j=1}^{n^L} e^{z_{j}}}$|$$|
+|SoftMax|$\sigma(\vec{z})_{i}=\frac{e^{z_{i}}}{\sum_{j=1}^{n^L} e^{z_{j}}}$|$I \equiv \text{Identity Matrix of } \nabla_a C \newline \sigma(\vec{z})_{i}(I - \sigma(\vec{z})_{j})$|
 ||$$|$$|
+
+
+$$
+i = j \rightarrow \delta_{ij} = 1 \newline i  \neq j \rightarrow \delta_{ij} = 0 \newline \sigma(\vec{z})_{i}(\delta_{ij} - \sigma(\vec{z})_{j})
+$$
 
 SoftMax derivation
 

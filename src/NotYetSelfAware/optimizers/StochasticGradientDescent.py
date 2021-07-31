@@ -1,6 +1,8 @@
 import numpy as np
+from .base import BaseOptimizer
 
-class BaseOptimizer():
+
+class StochasticGradientDescent(BaseOptimizer):
 	def __init__(self) -> None:
 		self.cache = None
 		self.t = 0

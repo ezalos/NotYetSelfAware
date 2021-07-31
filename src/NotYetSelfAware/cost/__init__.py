@@ -1,1 +1,2 @@
-from .binary_cross_entropy import BinaryCrossEntropy
+from .BinaryCrossEntropy import BinaryCrossEntropy
+from .CrossEntropy import CrossEntropy

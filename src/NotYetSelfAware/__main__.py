@@ -4,92 +4,73 @@ from model import Model
 from layers import Dense, Output
 import pandas as pd
 from validation import accuracy
+from optimizers import StochasticGradientDescent
 import numpy as np
 import logging
 import sys
 from preprocessing import Standardize
 from config import config
+import argparse
+from datasets import Datasets
+from cost import CrossEntropy, BinaryCrossEntropy
+
+# Parsing main arguments
+parser = argparse.ArgumentParser()
+parser.add_argument(
+	"-c", "--classes", help="Y is matrix shaped", action="store_true", default=False)
+parser.add_argument(
+	"-d", "--dataset", help="blobs or mlp", type=str, default="blobs")
+parser.add_argument(
+	"-v", "--visu", help="blobs or mlp", action="store_true", default=False)
+# parser.add_argument(
+# 	"-d", "--directory", help="Datasets directory")
+args = parser.parse_args()
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-def load_dataset(path):
-	col_names = [str(i) for i in range(32)]
-	df = pd.read_csv(path, names=col_names)
-	df_y = df['1']
-	y = df_y
-	df_X = df.drop(labels=['0', '1'], axis=1)
-	X = df_X.to_numpy()
-	y = df_y.to_numpy()
-
-	print(y)
-	y[y == 'M'] = 1
-	# print(y)
-	y[y == 'B'] = 0
-	print(y)
-
-	y = y.astype(np.int64)
-	y = y.reshape(1, -1)
-	X = X.reshape(X.shape[::-1])
+def load_dataset(args):
+	X, y = Datasets().generate(569, dataset=args.dataset,
+                            n_features=30, y_matrix=args.classes)
 	std_X = Standardize()
 	std_X.fit(X)
-	print(X)
 	X = std_X.apply(X)
-	print(X)
-	print(f"{X.shape = }")
-	print(f"{y.shape = }")
-
+	print(f"X: {X.shape} dtype -> {X.dtype}")
+	print(f"y: {y.shape} dtype -> {y.dtype}")
+	# print(f"{y.shape = }")
+	# print(f"{y.dtype = }")
 	return X, y
 
+def build_model(args, model_args, data_dim):
+	model = Model(**model_args)
+	model.add_layer(Dense(5, input_dim=data_dim[0]))
+	if args.classes:
+		model.add_layer(Output(data_dim[1], activation="Softmax"))
+		loss = CrossEntropy()
 
-def build_model(lr, seed, layers):
-	model = Model(learning_rate=lr, seed=seed, visu=False)
-	n_l = len(layers) - 1
-	for i in range(n_l):
-		if i < n_l -1:
-			model.add_layer(Dense(layers[i + 1], layers[i]))
-		else:
-			model.add_layer(Output(layers[i + 1], layers[i], activation="sigmoid"))
+	else:
+		model.add_layer(Output(data_dim[1], activation="sigmoid"))
+		loss = BinaryCrossEntropy()
+	model.compile(optimizer=StochasticGradientDescent(), loss=loss)
+	print(model)
 	return model
 
+X, y = load_dataset(args)
 
-def lr():
-	pow = np.random.randint(1, 7)
-	return (10 ** -pow) * np.random.random()
+model_args = {'learning_rate': 1e-1,
+        'seed': None,
+        'early_stopping': False,
+        'lr_decay': False,
+        'weight_decay': 0,
+        'scores': ["accuracy"],
+        'save_file': "default",
+        'visu': args.visu
+		}
 
+epochs = 2**14
 
-def run():
-	seed = np.random.randint(1, 1_000_000_000)
-	# seed = 466880822
-	l_r = 1e-1
-	print(f"{l_r = } & {seed = }")
-	model = build_model(l_r, seed, layers)
-	model.score(X, y)
-	model.fit(X=X, y=y, epoch=epochs, minibatch=None)
-	y_pred = model.predict(X=X, Threshold=0.5)
-	acc = accuracy(y, y_pred)
-	return l_r, seed, acc
-
-X, y = load_dataset(config.mlp_dataset_path)
-seed = None
-n_x = X.shape[0]
-mid = 10
-layers = [n_x, 3, 3, 1]
-epochs = (2 ** 16) + 1
-
-total_epoch = 0
-acc = 0
-
-# get_val = 
-histor = []
-import json
-
-while True:
-	elem = run()
-	histor.append(elem)
-	histor.sort(key=lambda a: a[-1], reverse=True)
-	print(f"Best lr {histor[0][0]} with {histor[0][-1]} acc -> {histor[0]}")
-	# with open('hp.json', 'w+') as f:
-	# 	json.dump(histor, f, indent=4)
-	# for h in histor:
-	# 	print(h[-1])
+data_dim = (X.shape[0], y.shape[0])
+model = build_model(args, model_args, data_dim)
+model.score(X, y)
+model.fit(X=X, y=y, epoch=epochs, minibatch=None)

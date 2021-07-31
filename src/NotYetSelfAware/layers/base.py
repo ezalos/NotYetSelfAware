@@ -1,5 +1,5 @@
 import numpy as np
-from .activations import Tanh, Sigmoid, ReLU, LeakyReLU
+from .activations import Tanh, Sigmoid, ReLU, LeakyReLU, LU, Softmax
 # from .activations.sigmoid import Sigmoid
 
 
@@ -7,12 +7,8 @@ class BaseLayer():
 	name = "Base"
 	def __init__(self,
               n_units: int,
-              input_dim: int,
-              seed=None,
-              init_coef=0.01,
-              activation="LeakyReLU",
-              learning_rate=0.01,
-              debug=False):
+              input_dim: int = None,
+              activation="LeakyReLU"):
 		"""[summary]
 
 		Args:
@@ -26,17 +22,18 @@ class BaseLayer():
 			init_coef (float, optional): [description]. Defaults to 0.01.
 			activation (str, optional): [description]. Defaults to "ReLU".
 		"""
-		self.debug = debug
-		if self.debug:
-			print("Initialization of Dense")
-		if seed:
-			np.random.seed(seed=seed)
 		self.n_units = n_units
-		self.shape = (n_units, input_dim)
-		self.learning_rate = learning_rate
-		self._init_activation(activation)
-		self._init_params(n_units, input_dim)
-		self._init_cache(n_units)
+		self.input_dim = input_dim
+		self.g_name = activation
+		self.shape = None
+
+	def _init_build(self):
+		if self.input_dim == None:
+			raise ValueError("input_dim must have been assigned")
+		self.shape = (self.n_units, self.input_dim)
+		self._init_activation(self.g_name)
+		self._init_params(self.n_units, self.input_dim)
+		self._init_cache()
 		self._init_grads()
 
 	def _init_weights(self):
@@ -57,7 +54,7 @@ class BaseLayer():
 			'b': np.zeros((n_units, 1)),
 		}
 
-	def _init_cache(self, n_units):
+	def _init_cache(self):
 		self.cache = {
 			'Z': None, #np.zeros((n_units, 1)),
 			'A': None, #np.zeros((n_units, 1)),
@@ -77,12 +74,13 @@ class BaseLayer():
 			"sigmoid": Sigmoid,
 			"ReLU": ReLU,
 			"LeakyReLU": LeakyReLU,
+			"LU": LU,
+			"Softmax": Softmax,
 			}
 		if activation not in activations.keys():
 			raise ValueError(
 				f"Error: function activation '{activation}' is not recognized")
 		else:
-			self.g_name = activation
 			self.g = activations[activation]()
 
 	def forward(self, dA_m1):
@@ -92,9 +90,9 @@ class BaseLayer():
 		raise NotImplemented
 
 	def __str__(self) -> str:
-		msg = f"{' ' * 2}"
-		msg += f"{self.name}: layer"
-		msg += f" of shape {self.shape}"
-		msg += f" with activation {self.g_name}"
+		msg = f"{' ' * 4}"
+		msg += f"{self.name}: "
+		msg += f"{self.shape}"
+		msg += f"\tg() -> {self.g_name}"
 		return msg
 

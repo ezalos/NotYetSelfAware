@@ -1,10 +1,12 @@
 import numpy as np
 import logging
+from .base import BaseCost
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-class BinaryCrossEntropy():
+
+class CrossEntropy(BaseCost):
 	def __init__(self) -> None:
 		pass
 
@@ -15,7 +17,7 @@ class BinaryCrossEntropy():
 
 		logger.debug(f"{A.shape = }")
 		logger.debug(f"{y.shape = }")
-		
+
 		# eps = np.zeros_like(A)
 		# eps[A == 0] = e
 		eps = e
@@ -24,12 +26,14 @@ class BinaryCrossEntropy():
 		# eps = np.zeros_like(A)
 		# eps[A == 1] = 1 - e
 		log_false = np.dot(np.log(1 - A + eps), (1 - y).T)
-		
+
 		log_prob = log_true + log_false
 
 		J = - (1 / m) * log_prob
-		J = float(np.squeeze(J))
-		# J = np.squeeze(J)
+		# J = float(np.squeeze(J))
+		# print(f"{J = }")
+		J = np.squeeze(J)
+		# print(f"{J = }")
 		# J = float(J.sum())
 		logger.debug(f"{J = }")
 
@@ -46,7 +50,7 @@ class BinaryCrossEntropy():
 		left = - (Y / (A + e))
 		# eps = np.zeros_like(A)
 		# eps[A == 1] = e
-		right = ((1 - Y) / (1 - A + e)) 
+		right = ((1 - Y) / (1 - A + e))
 		res = (1/m) * (left + right)
 		# print(f"{res.shape = }")
 		# res = res.sum(axis=1, keepdims=True)

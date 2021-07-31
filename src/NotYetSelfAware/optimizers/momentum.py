@@ -18,7 +18,7 @@ class Momentum(BaseOptimizer):
 				elems['Vd' + param] = np.zeros_like(l.grads['d' + param])
 			self.cache.append(elems)
 
-	def update(self, layers:list, learning_rate):
+	def update(self, layers:list):
 		if self.cache == None:
 			self.init_cache(layers)
 		b = self.beta

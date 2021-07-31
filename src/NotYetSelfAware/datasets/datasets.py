@@ -1,4 +1,20 @@
 from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression
+import pandas as pd
+import numpy as np
+from config import config
+
+
+def get_dummies(y):
+	uniques = np.unique(y)
+	# could also be interesting with np.unique()
+	new_y = []
+	for i in uniques:
+		tmp = np.zeros_like(y)
+		tmp[y == i] = 1
+		tmp = tmp.reshape(-1)
+		new_y.append(tmp)
+	y = np.stack(new_y, axis=0)
+	return y
 
 class Datasets():
 	# Reference: https://machinelearningmastery.com/generate-test-datasets-python-scikit-learn/
@@ -6,13 +22,14 @@ class Datasets():
 		self.noise = noise
 		pass
 
-	def generate(self, n_examples, n_features=None, dataset="blobs", n_targets=None):
+	def generate(self, n_examples, n_features=None, dataset="blobs", n_targets=None, y_matrix=False):
 		if dataset == "blobs":
 			if n_targets == None:
 				n_targets = 2
 			if n_features == None:
 				n_features = 4
-			return self.blobs(n_examples, n_features, n_targets)
+			print(f"Loading {dataset}: ({n_features}, {n_targets})")
+			return self.blobs(n_examples, n_features, n_targets, y_matrix)
 		elif dataset == "moons":
 			return self.moons(n_examples)
 		elif dataset == "circles":
@@ -23,28 +40,35 @@ class Datasets():
 			if n_features == None:
 				n_features = 4
 			return self.regression(n_examples, n_features, n_targets)
+		elif dataset == "mlp":
+			return self.mlp(y_matrix)
 		else:
 			raise ValueError(f"Error there is no dataset generator of type {dataset}")
 
-	def blobs(self, n_examples, n_features, n_targets=2):
+	def blobs(self, n_examples, n_features, n_targets=2, y_matrix=False):
 		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_blobs.html
 
 		X, y = make_blobs(n_samples=n_examples,
                     centers=n_targets,
 					n_features=n_features)
 		y = y.reshape((1, -1))
+		X = X.T
+		if y_matrix:
+			y = get_dummies(y)
 		return X, y
 
 	def moons(self, n_examples):
 		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html
 		X, y = make_moons(n_samples=n_examples, noise=self.noise)
 		y = y.reshape((1, -1))
+		X = X.T
 		return X, y
 
 	def circles(self, n_examples):
 		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_circles.html
 		X, y = make_circles(n_samples=n_examples, noise=self.noise)
 		y = y.reshape((1, -1))
+		X = X.T
 		return X, y
 
 	def regression(self, n_examples, n_features, n_targets=1):
@@ -53,6 +77,25 @@ class Datasets():
 		X, y = make_regression(n_samples=n_examples, n_features=n_features,
 		                       n_targets=n_targets, noise=self.noise)
 		y = y.reshape((1, -1))
+		X = X.T
+		return X, y
+
+	def mlp(self, y_matrix=False):
+		col_names = [str(i) for i in range(32)]
+		path = config.mlp_dataset_path
+		df = pd.read_csv(path, names=col_names)
+		df_y = df['1']
+		y = df_y
+		df_X = df.drop(labels=['0', '1'], axis=1)
+		X = df_X.to_numpy()
+		y = df_y.to_numpy()
+		y[y == 'M'] = 1
+		y[y == 'B'] = 0
+		y = y.astype(np.int64)
+		y = y.reshape(1, -1)
+		X = X.reshape(X.shape[::-1])
+		if y_matrix:
+			y = get_dummies(y)
 		return X, y
 
 if __name__ == "__main__":
@@ -72,6 +115,8 @@ if __name__ == "__main__":
 		plt.show(block=False)
 		plt.pause(WAIT_TIME)
 		plt.close()
+	X, y = Datasets().generate(100, dataset="mlp")
+	little_plot(X, y)
 
 	X, y = Datasets().generate(100, dataset="blobs", n_targets=3)
 	little_plot(X, y)

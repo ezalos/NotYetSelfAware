@@ -46,7 +46,7 @@ if __name__ == "__main__":
 	print(f"X values:\n{X}")
 	print()
 
-	layer = Dense(curr, prev, debug=True)
+	layer = Output(curr, prev, debug=True)
 	print()
 	print(layer)
 	print()

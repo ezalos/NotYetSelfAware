@@ -31,8 +31,6 @@ if True:
 class Model():
 	def __init__(self, 
 				 learning_rate: float,
-				 loss = BinaryCrossEntropy(),
-				 optimizer = BaseOptimizer(),
 				 seed: int = None,
 				 early_stopping:bool = False,
 				 lr_decay = False,#str = "",
@@ -40,17 +38,13 @@ class Model():
 				 scores: List[str] = ["accuracy"],
 				 save_file: str = "default",
 				 visu: bool = False) -> None:
-		self.seed = seed
-		if seed:
-			np.random.seed(seed=seed)
-		
+		self.seed = seed		
 		self.layers =  []
 
 		self.lr_0 = learning_rate
 		self.lr = self.lr_0
-
-		self.loss = loss
-		self.optimizer = optimizer
+		self.loss = None
+		self.optimizer = None
 
 		self.early_stopping = early_stopping
 		self.lr_decay = lr_decay
@@ -64,18 +58,51 @@ class Model():
 
 		self.save_file = save_file
 		
-		self.threshold = 0.5
-		self.visu_on = True
+		self.threshold = None
+		self.visu_on = visu
+
+		self._is_compiled = False
 		if self.visu_on:
 			self.visu = NeuralNetworkVisu()
 
 	def add_layer(self, layer):
+		if len(self.layers) == 0 and layer.input_dim == None:
+			raise ValueError("Your first layer must have input_dim set")
 		self.layers.append(layer)
 		logging.debug(f"Added a new layer!\n\t{self.layers[-1]}")
-		if self.visu_on:
-			if len(self.visu.layers) == 0:
-				self.visu.add_layer(layer.shape[1])
+
+	def _compile_layers(self):
+		self.layers[0]._init_build()
+		for i in range(1, len(self.layers)):
+			prev_layer = self.layers[i - 1]
+			curr_layer = self.layers[i]
+			if curr_layer.input_dim == None:
+				curr_layer.input_dim = prev_layer.n_units
+			elif curr_layer.input_dim != prev_layer.n_units:
+				msg = "Adjacent layers must be of shapes l1: (b, a) and l2: (c, b)\n"
+				msg += f"\tLayer n*{i - 1} is ({prev_layer.n_units},{prev_layer.input_dim})\n"
+				msg += f"\tLayer n*{i} is ({curr_layer.n_units},{curr_layer.input_dim})\n"
+				raise ValueError(msg)
+			curr_layer._init_build()
+
+	def _compile_visu(self):
+		self.visu.add_layer(self.layers[0].shape[1])
+		for layer in self.layers:
 			self.visu.add_layer(layer.shape[0])
+
+	def compile(self,
+				loss=BinaryCrossEntropy(),
+				optimizer=BaseOptimizer()):
+		if self.seed:
+			np.random.seed(seed=self.seed)
+		self._compile_layers()
+		self.loss = loss
+		self.optimizer = optimizer
+		if self.visu_on:
+			self._compile_visu()
+		if self.layers[-1].g_name in ["Softmax", "sigmoid"]:
+			self.threshold = 0.5
+		self._is_compiled = True
 
 	def _get_minibatch(self, X, y, size):
 		if size == None:
@@ -89,10 +116,13 @@ class Model():
 			yield (X_batch, y_batch)
 
 	def _forward(self, X_batch):
+		# print(f"{X_batch.shape = }")
 		A = X_batch
+		# print(f"{A.shape = }")
 		for i, l in enumerate(self.layers):
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
+			# print(f"{A.shape = }")
 		return A
 
 	def _cost(self, AL, y_batch):
@@ -131,17 +161,20 @@ class Model():
 		pbar.set_postfix(**self.verbose_update)
 		if e % jmp == 0:
 			if e >= jmp * 2:
-				jmp = e
+				if jmp < 1000:
+					jmp = e
 			if self.visu_on:
 				self.visualize(e)
 		return jmp
 
+	# TODO: Create decorators to protect user interfaces
 	def fit(self, X, y, epoch=1, minibatch=None, verbose=True, train_test_split=False):
+		if not self._is_compiled:
+			raise Exception(f"Model needs to be compiled before being used")
 		jmp = 1
 		with trange(epoch) as pbar:
 			pbar.set_description("Fit <3")
 			for e in pbar:
-
 				for X_batch, y_batch in self._get_minibatch(X, y, minibatch):
 					AL = self._forward(X_batch)
 					self._cost(AL, y_batch)
@@ -179,12 +212,16 @@ class Model():
 	def _update(self, epoch):
 		if self.lr_decay:
 			self._lr_decay(epoch)
-		self.optimizer.update(self.layers, self.lr)
+		self.optimizer.update(self.layers)
 		weight_decay = self.weight_decay
 		for layer, opti in zip(self.layers, self.optimizer.cache):
 			for param in layer.params.keys():
 				layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
 					(self.lr * opti['d' + param])
+
+	def visualize(self, e):
+		self.visu.update_weights(self.layers, self.history['loss'], self.history['accuracy'])
+		self.visu.draw(e)
 
 	def save(self):
 		path = config.cache_folder + self.save_file + '.pkl'
@@ -202,12 +239,18 @@ class Model():
 			self = pickle.load(f)
 		return self
 
-	def visualize(self, e):
-		self.visu.update_weights(self.layers, self.history['loss'], self.history['accuracy'])
-		self.visu.draw(e)
-
-	# def __str__(self) -> str:
-	# 	pass
+	def __str__(self) -> str:
+		n = 10
+		msg = ""
+		msg += f"{'~' * n} MODEL {'~' * n}\n"
+		msg += f"Loss: {self.loss.__class__.__name__}\n"
+		msg += f"Optimizer: {self.optimizer.__class__.__name__}\n"
+		for l in self.layers:
+			msg += f"{l}\n"
+		msg += f"Learning rate: {self.lr}\n"
+		msg += f"seed: {self.seed}\n"
+		msg += f"{'~' * n}~~~~~~~{'~' * n}"
+		return msg
 
 if __name__ == "__main__":
 	m = 569

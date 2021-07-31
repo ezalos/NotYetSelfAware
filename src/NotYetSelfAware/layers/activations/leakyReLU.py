@@ -4,7 +4,6 @@ from .base import BaseActivation
 
 class LeakyReLU(BaseActivation):
 	def __init__(self, coef=0.01, undefined=True) -> None:
-		print("Initialization of LeakyReLU")
 		self.coef = coef
 		self.undefined = undefined
 		pass
