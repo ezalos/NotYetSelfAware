@@ -168,6 +168,7 @@ class NeuralNetworkVisu():
 		# plt.ion()
 
 	def exit(self):
+		input()
 		plt.close()
 		plt.ioff()
 

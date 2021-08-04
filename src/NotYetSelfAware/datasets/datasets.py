@@ -1,4 +1,4 @@
-from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression
+from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression, load_iris
 import pandas as pd
 import numpy as np
 from config import config
@@ -42,6 +42,8 @@ class Datasets():
 			return self.regression(n_examples, n_features, n_targets)
 		elif dataset == "mlp":
 			return self.mlp(y_matrix)
+		elif dataset == "iris":
+			return self.iris(y_matrix)
 		else:
 			raise ValueError(f"Error there is no dataset generator of type {dataset}")
 
@@ -52,6 +54,21 @@ class Datasets():
                     centers=n_targets,
 					n_features=n_features)
 		y = y.reshape((1, -1))
+		X = X.T
+		if y_matrix:
+			y = get_dummies(y)
+		return X, y
+
+	def iris(self, y_matrix=False):
+		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_blobs.html
+		dataset = load_iris()
+		X = dataset['data']
+		y = dataset['target']
+		print(f"{X.shape = }")
+		print(f"{y.shape = }")
+		y = y.reshape((1, -1))
+		y[y==2] = 0
+		print(f"{y = }")
 		X = X.T
 		if y_matrix:
 			y = get_dummies(y)

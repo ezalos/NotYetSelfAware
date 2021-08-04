@@ -15,10 +15,13 @@ class Dense(BaseLayer):
 		logger.debug(f"{self.__class__.__name__}: forward()")
 		logger.debug(f"\t{self.params['W'].shape = }")
 		logger.debug(f"\t{A_m1.shape = }")
+
 		self.cache['Z'] = np.dot(self.params['W'], A_m1) + self.params['b']
+
 		logger.debug(f"\t{self.cache['Z'].shape = }")
 
 		self.cache['A'] = self.g.forward(self.cache['Z'])
+		
 		logger.debug(f"\t{self.cache['A'].shape = }")
 
 		# logging

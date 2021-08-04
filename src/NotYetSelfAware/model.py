@@ -100,7 +100,7 @@ class Model():
 		self.optimizer = optimizer
 		if self.visu_on:
 			self._compile_visu()
-		if self.layers[-1].g_name in ["Softmax", "sigmoid"]:
+		if self.layers[-1].g_name in ["sigmoid"]:
 			self.threshold = 0.5
 		self._is_compiled = True
 
@@ -131,8 +131,12 @@ class Model():
 		self.verbose_update['loss'] = loss
 
 	def _backward(self, AL, X_batch, y_batch):
-		dAL = self.loss.backward(AL, y_batch)
-		self.layers[-1].backward(dAL, self.layers[-2].cache['A'])
+		simplify = False
+		if simplify == True:
+			dAL = AL - y_batch
+		else:
+			dAL = self.loss.backward(AL, y_batch)
+		self.layers[-1].backward(dAL, self.layers[-2].cache['A'], simplify=simplify)
 		for i in range(len(self.layers[:-1]))[::-1]:
 			# logging.debug(f"\tBackward: layer n*{i}")
 			if i == 0:
@@ -216,8 +220,9 @@ class Model():
 		weight_decay = self.weight_decay
 		for layer, opti in zip(self.layers, self.optimizer.cache):
 			for param in layer.params.keys():
-				layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
-					(self.lr * opti['d' + param])
+				# layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
+				# 	(self.lr * opti['d' + param])
+				layer.params[param] = (layer.params[param]) - (self.lr * opti['d' + param])
 
 	def visualize(self, e):
 		self.visu.update_weights(self.layers, self.history['loss'], self.history['accuracy'])

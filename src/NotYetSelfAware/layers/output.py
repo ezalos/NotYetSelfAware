@@ -18,8 +18,12 @@ class Output(BaseLayer):
 		logger.debug(f"{self.__class__.__name__}: forward()")
 		return self.cache['A']
 
-	def backward(self, dAL, A_m1):
-		self.grads['dZ'] = dAL * self.g.backward(self.cache['Z'])
+	def backward(self, dAL, A_m1, simplify=False):
+		if simplify == True:
+			self.grads['dZ'] = dAL
+		else:
+			self.grads['dZ'] = dAL * self.g.backward(self.cache['Z'])
+			
 
 		m = self.n_units
 		self.grads['dW'] = (1 / m) * np.dot(self.grads['dZ'], A_m1.T)

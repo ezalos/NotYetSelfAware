@@ -1,10 +1,11 @@
 # import .__init__
 from numpy.random.mtrand import random
+from layers import activations
 from model import Model
 from layers import Dense, Output
 import pandas as pd
 from validation import accuracy
-from optimizers import StochasticGradientDescent
+from optimizers import StochasticGradientDescent, Adam
 import numpy as np
 import logging
 import sys
@@ -18,6 +19,8 @@ from cost import CrossEntropy, BinaryCrossEntropy
 parser = argparse.ArgumentParser()
 parser.add_argument(
 	"-c", "--classes", help="Y is matrix shaped", action="store_true", default=False)
+parser.add_argument(
+	"-lr", "--learning_rate", help="Model learning ratre", type=float, default=1e-1)
 parser.add_argument(
 	"-d", "--dataset", help="blobs or mlp", type=str, default="blobs")
 parser.add_argument(
@@ -39,12 +42,15 @@ def load_dataset(args):
 	print(f"X: {X.shape} dtype -> {X.dtype}")
 	print(f"y: {y.shape} dtype -> {y.dtype}")
 	# print(f"{y.shape = }")
-	# print(f"{y.dtype = }")
+	print(f"{y = }")
 	return X, y
 
 def build_model(args, model_args, data_dim):
 	model = Model(**model_args)
-	model.add_layer(Dense(5, input_dim=data_dim[0]))
+	model.add_layer(Dense(20, input_dim=data_dim[0], activation="tanh"))
+	model.add_layer(Dense(10, activation="tanh"))
+	model.add_layer(Dense(5, activation="tanh"))
+	model.add_layer(Dense(3, activation="tanh"))
 	if args.classes:
 		model.add_layer(Output(data_dim[1], activation="Softmax"))
 		loss = CrossEntropy()
@@ -52,23 +58,27 @@ def build_model(args, model_args, data_dim):
 	else:
 		model.add_layer(Output(data_dim[1], activation="sigmoid"))
 		loss = BinaryCrossEntropy()
-	model.compile(optimizer=StochasticGradientDescent(), loss=loss)
+	# opt = StochasticGradientDescent()
+	opt = Adam()
+	model.compile(optimizer=opt, loss=loss)
 	print(model)
 	return model
 
 X, y = load_dataset(args)
 
-model_args = {'learning_rate': 1e-1,
-        'seed': None,
+# Iris 99 broke
+
+model_args = {'learning_rate': args.learning_rate,
+        'seed': 42,
         'early_stopping': False,
         'lr_decay': False,
-        'weight_decay': 0,
+        'weight_decay': 0,#.15,
         'scores': ["accuracy"],
         'save_file': "default",
         'visu': args.visu
 		}
 
-epochs = 2**14
+epochs = 2 ** 14
 
 data_dim = (X.shape[0], y.shape[0])
 model = build_model(args, model_args, data_dim)

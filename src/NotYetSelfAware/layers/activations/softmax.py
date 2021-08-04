@@ -5,7 +5,7 @@ from .base import BaseActivation
 class Softmax(BaseActivation):
 	def __init__(self,shift=False) -> None:
 		self.shift = shift
-		# self.shift = True
+		self.shift = True
 		pass
 
 	def forward(self, Z):
@@ -25,12 +25,10 @@ class Softmax(BaseActivation):
 		return A
 
 	def backward(self, Z):
-		
-
 		exp_Z = np.exp(Z)
 		exp_sum = np.sum(exp_Z, axis=0)
 		dA = Z - np.log(exp_sum)
-		print(f"{dA.shape = }")
+		# print(f"{dA.shape = }")
 		return dA
 
 if __name__ == "__main__":

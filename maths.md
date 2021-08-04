@@ -13,6 +13,12 @@ X^{(example)}_{feature}
 $$
 
 $$
+Y^{(example)}_{targets}
+\text{, of shape }
+(n_x \times m)
+$$
+
+$$
 X = A^{[0]} = 
 \left[
   \begin{array}{ccc}
@@ -110,10 +116,12 @@ $$
 \delta^L = \nabla_a C \odot \sigma'(z^L)
 $$
 
+
 |Name|$C$|$\nabla_a C$|
 |:-|:-|:-|
 |Mean Squared Error|$\frac{1}{2}∑_j(y_j−a^L_j)^2$|$a^L-y$|
 |Binary Cross Entropy|$y\log{a^L} + (1-y)\log(1-a^L)$|$\frac{-y}{a^L}+\frac{1-y}{1-a^L}$|
+|Cross Entropy| $-\sum_{k}p(k)log(q(k))$ ||
 |SoftMax|$\sigma(\vec{z})_{i}=\frac{e^{z_{i}}}{\sum_{j=1}^{n^L} e^{z_{j}}}$|$I \equiv \text{Identity Matrix of } \nabla_a C \newline \sigma(\vec{z})_{i}(I - \sigma(\vec{z})_{j})$|
 ||$$|$$|
 

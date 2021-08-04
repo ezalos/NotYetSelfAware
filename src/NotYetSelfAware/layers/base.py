@@ -72,11 +72,12 @@ class BaseLayer():
 		activations = {
 			"tanh": Tanh,
 			"sigmoid": Sigmoid,
-			"ReLU": ReLU,
-			"LeakyReLU": LeakyReLU,
-			"LU": LU,
-			"Softmax": Softmax,
+			"relu": ReLU,
+			"leakyrelu": LeakyReLU,
+			"lu": LU,
+			"softmax": Softmax,
 			}
+		activation = activation.lower()
 		if activation not in activations.keys():
 			raise ValueError(
 				f"Error: function activation '{activation}' is not recognized")
