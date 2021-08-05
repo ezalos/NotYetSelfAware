@@ -28,9 +28,10 @@ class Standardize():
 		return self
 
 	def apply(self, data):
+		e = 1e-20
 		logger.debug(f"Apply: {data.shape = }")
 		mu_0 = (data - self.mu)
-		std_1 = mu_0 / self.std
+		std_1 = mu_0 / (self.std + e)
 		logger.debug(f"\t{std_1.shape = }")
 		return std_1
 

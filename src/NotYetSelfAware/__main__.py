@@ -47,10 +47,13 @@ def load_dataset(args):
 
 def build_model(args, model_args, data_dim):
 	model = Model(**model_args)
-	model.add_layer(Dense(20, input_dim=data_dim[0], activation="tanh"))
-	model.add_layer(Dense(10, activation="tanh"))
-	model.add_layer(Dense(5, activation="tanh"))
-	model.add_layer(Dense(3, activation="tanh"))
+	act = "tanh"
+	# act = "leakyrelu"
+	# act = "relu"
+	model.add_layer(Dense(32, input_dim=data_dim[0], activation=act))
+	model.add_layer(Dense(16, activation=act))
+	# model.add_layer(Dense(5, activation=act))
+	# model.add_layer(Dense(3, activation=act))
 	if args.classes:
 		model.add_layer(Output(data_dim[1], activation="Softmax"))
 		loss = CrossEntropy()

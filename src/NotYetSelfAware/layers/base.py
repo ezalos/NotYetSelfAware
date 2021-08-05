@@ -36,13 +36,19 @@ class BaseLayer():
 		self._init_cache()
 		self._init_grads()
 
-	def _init_weights(self):
-		if self.g_name == "tanh":
-			return (1 / self.shape[1]) ** (1/2)
-		# elif self.g_name == "ReLU":
-		return (2 / self.shape[1]) ** (1/2)
-		# Other method
-		# return (2 / (input_dim + n_units)) ** (1/2)
+	def _init_weights(self, init=None):
+		f_init = {
+			"xavier": lambda prev, curr: (1/prev) ** (1/2),
+			"he": lambda prev, curr: (2/prev) ** (1/2),
+			"bengio": lambda prev, curr: (2/(prev + curr)) ** (1/2),
+			# "bengio": lambda prev, curr: (2/(prev + curr)) ** (2)
+		}
+		if init==None:
+			if self.g_name == "tanh":
+				init = "xavier"
+			else:
+				init = "bengio"
+		return f_init[init](self.input_dim, self.n_units)
 
 
 	# * Naming convention:

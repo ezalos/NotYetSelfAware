@@ -1,11 +1,12 @@
-from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression, load_iris
+from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression, load_iris, load_digits
 import pandas as pd
 import numpy as np
 from config import config
 
 
-def get_dummies(y):
-	uniques = np.unique(y)
+def get_dummies(y, uniques=None):
+	if not uniques:
+		uniques = np.unique(y)
 	# could also be interesting with np.unique()
 	new_y = []
 	for i in uniques:
@@ -44,6 +45,8 @@ class Datasets():
 			return self.mlp(y_matrix)
 		elif dataset == "iris":
 			return self.iris(y_matrix)
+		elif dataset == "digits":
+			return self.digits(y_matrix)
 		else:
 			raise ValueError(f"Error there is no dataset generator of type {dataset}")
 
@@ -60,18 +63,42 @@ class Datasets():
 		return X, y
 
 	def iris(self, y_matrix=False):
-		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_blobs.html
+		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_iris.html
 		dataset = load_iris()
 		X = dataset['data']
 		y = dataset['target']
 		print(f"{X.shape = }")
 		print(f"{y.shape = }")
 		y = y.reshape((1, -1))
-		y[y==2] = 0
 		print(f"{y = }")
 		X = X.T
 		if y_matrix:
 			y = get_dummies(y)
+		else:
+			y[y==2] = 0
+		return X, y
+
+	def digits(self, y_matrix=False):
+		# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_digits.html
+		dataset = load_digits()
+		X = dataset['data']
+		y = dataset['target']
+		print(f"{X.shape = }")
+		print(f"{X = }")
+		print(f"{y.shape = }")
+		y = y.reshape((1, -1))
+		print(f"{y = }")
+		X = X.T
+		if y_matrix:
+			y = get_dummies(y)
+		if np.isnan(X).any():
+			print(f"Sklearn Dataset has NaNs !!!")
+			X[np.isnan(X)] = 0
+		# if np.isnan(X).any():
+		# 	print(f"Sklearn Dataset still has NaNs !!!")
+		# 	test = np.isnan(X).astype(np.int64)
+		# 	print(np.max(test))
+		# 	# print(np.isnan(X))
 		return X, y
 
 	def moons(self, n_examples):

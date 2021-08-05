@@ -13,6 +13,7 @@ from typing import List
 from config import config
 import pickle
 import os
+from datasets import get_dummies
 
 # LOGGER INITIALISATION
 root = logging.getLogger()
@@ -100,8 +101,20 @@ class Model():
 		self.optimizer = optimizer
 		if self.visu_on:
 			self._compile_visu()
-		if self.layers[-1].g_name in ["sigmoid"]:
+		f_pred = None
+		if self.layers[-1].g_name.lower() == "sigmoid":
 			self.threshold = 0.5
+			def f_pred(A, th=0.5):
+				return (A > th).astype(np.int64)
+		elif self.layers[-1].g_name.lower() == "softmax":
+			def f_pred(A):
+				# print(f"f_pred {A.shape = }")
+				categories = A.argmax(axis=0)
+				# print(f"f_pred {categories.shape = }")
+				res = get_dummies(categories, range(self.layers[-1].n_units))
+				# print(f"f_pred {res.shape = }")
+				return res
+		self.f_pred = f_pred
 		self._is_compiled = True
 
 	def _get_minibatch(self, X, y, size):
@@ -122,6 +135,8 @@ class Model():
 		for i, l in enumerate(self.layers):
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
+			if np.isnan(A).any():
+				print(f"Activation of layer {i} has NaNs")
 			# print(f"{A.shape = }")
 		return A
 
@@ -131,7 +146,7 @@ class Model():
 		self.verbose_update['loss'] = loss
 
 	def _backward(self, AL, X_batch, y_batch):
-		simplify = False
+		simplify = True
 		if simplify == True:
 			dAL = AL - y_batch
 		else:
@@ -195,7 +210,7 @@ class Model():
 	
 	def score(self, X, y):
 		pred = self.predict(X, Threshold=self.threshold)
-
+		# print(f"{pred.shape = }")
 		scores = self.history.keys()
 		if "accuracy" in scores:
 			acc = accuracy(y, pred)
@@ -204,8 +219,10 @@ class Model():
 
 	def predict(self, X, Threshold=None):
 		A = self._forward(X)
-		if Threshold:
-			A = (A > Threshold).astype(np.int64)
+		# print(f"{A.shape = }")
+		if self.f_pred:
+			A = self.f_pred(A)
+			# A = (A > Threshold).astype(np.int64)
 		y_pred = A
 		return y_pred
 

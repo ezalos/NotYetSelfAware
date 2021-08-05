@@ -16,17 +16,19 @@ class CrossEntropy(BaseCost):
 		e = 1e-20
 		m = Y.shape[1]
 
+		# print(f"{A = }")
 		logA = np.log(A + e)
-
-		logA_k = np.sum(A, axis=1)
-		Y_k = np.sum(Y, axis=1)
+		# print(f"{logA = }")
+		logA_k = np.sum(logA, axis=0)
+		# print(f"{logA_k = }")
+		Y_k = np.sum(Y, axis=0)
+		# print(f"{Y_k = }")
 		
-		J = - (Y_k * logA_k).sum() / m
+		J = -(Y_k * logA_k).sum() / m
+		# print(f"{J = }")
 
 		J = np.squeeze(J)
 		return J
 
 	def backward(self, A, Y):
-		# return A - Y
-		# return res
-		pass
+		return (Y / A)

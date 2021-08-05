@@ -1,1 +1,1 @@
-from .datasets import Datasets
+from .datasets import Datasets, get_dummies
