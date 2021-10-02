@@ -108,7 +108,9 @@ class NeuralNetworkVisu():
 		self.ax_losses = self.fig.add_subplot(grid[0, 2:])
 		# self.ax_accues = self.ax_losses.twinx()
 		self.loss_color = "tab:red"
+		self.val_loss_color = "tab:orange"
 		self.acc_color = "tab:blue"
+		self.val_acc_color = "tab:cyan"
 		self.ax_accues = self.fig.add_subplot(grid[1, 2:])
 		plt.ion()
 
@@ -121,11 +123,13 @@ class NeuralNetworkVisu():
 		self.layers.append(layer)
 		self.const['vertical_distance_between_layers'] = self.vert_size / (len(self.layers))
 
-	def update_weights(self, layers, losses, accues):
+	def update_weights(self, layers, losses, val_losses, accues, val_accues):
 		for v, l in zip(self.layers, layers):
 			v.weights = l.params['W']
 		self.losses = losses
+		self.val_losses = val_losses
 		self.accues = accues
+		self.val_accues = val_accues
 			# v.weights = l.grads['dW']
 
 	def draw(self, e):
@@ -145,7 +149,9 @@ class NeuralNetworkVisu():
 
 		self.ax_losses.set_ylabel("Loss", color=self.loss_color)
 		self.ax_losses.plot(self.losses, label="Loss", color=self.loss_color)
+		self.ax_losses.plot(self.val_losses, label="Test Loss", color=self.val_loss_color)
 		self.ax_losses.tick_params(axis='y', labelcolor=self.loss_color)
+		self.ax_losses.legend()
 		# self.ax_losses.set_facecolor('lightcyan')
 		# self.ax_losses.axis('scaled')
 		
@@ -154,8 +160,10 @@ class NeuralNetworkVisu():
 		# self.ax_accues.yaxis.tick_right()
 		self.ax_accues.set_ylabel("Accuracy", color=self.acc_color)
 		self.ax_accues.plot(self.accues, label="Accuracy", color=self.acc_color)
+		self.ax_accues.plot(self.val_accues, label="Test Accuracy", color=self.val_acc_color)
 		self.ax_accues.tick_params(axis='y', labelcolor=self.acc_color)
 		self.ax_accues.set_xlabel('Epochs')
+		self.ax_accues.legend()
 
 		# self.ax_accues.set_title("Accuracy")
 		plt.pause(1e-4)
@@ -168,7 +176,7 @@ class NeuralNetworkVisu():
 		# plt.ion()
 
 	def exit(self):
-		input()
+		# input("Press enter to close the program")
 		plt.close()
 		plt.ioff()
 

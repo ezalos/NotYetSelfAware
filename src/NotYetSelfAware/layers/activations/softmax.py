@@ -3,7 +3,7 @@ from .base import BaseActivation
 
 
 class Softmax(BaseActivation):
-	def __init__(self,shift=False) -> None:
+	def __init__(self, shift=False) -> None:
 		self.shift = shift
 		self.shift = True
 		pass

@@ -24,7 +24,11 @@ class Datasets():
 		pass
 
 	def generate(self, n_examples, n_features=None, dataset="blobs", n_targets=None, y_matrix=False):
-		if dataset == "blobs":
+		if dataset == "mlp":
+			return self.mlp(y_matrix=y_matrix)
+		elif dataset.endswith(".csv"):
+			return self.mlp(csv_path=dataset, y_matrix=y_matrix)
+		elif dataset == "blobs":
 			if n_targets == None:
 				n_targets = 2
 			if n_features == None:
@@ -41,8 +45,6 @@ class Datasets():
 			if n_features == None:
 				n_features = 4
 			return self.regression(n_examples, n_features, n_targets)
-		elif dataset == "mlp":
-			return self.mlp(y_matrix)
 		elif dataset == "iris":
 			return self.iris(y_matrix)
 		elif dataset == "digits":
@@ -124,10 +126,10 @@ class Datasets():
 		X = X.T
 		return X, y
 
-	def mlp(self, y_matrix=False):
+	def mlp(self, csv_path=config.mlp_dataset_path, y_matrix=False):
+		# path = config.mlp_dataset_path
 		col_names = [str(i) for i in range(32)]
-		path = config.mlp_dataset_path
-		df = pd.read_csv(path, names=col_names)
+		df = pd.read_csv(csv_path, names=col_names)
 		df_y = df['1']
 		y = df_y
 		df_X = df.drop(labels=['0', '1'], axis=1)

@@ -12,8 +12,10 @@ import sys
 from typing import List
 from config import config
 import pickle
+import copy
 import os
 from datasets import get_dummies
+import matplotlib.pyplot as plt
 
 # LOGGER INITIALISATION
 root = logging.getLogger()
@@ -37,7 +39,7 @@ class Model():
 				 lr_decay = False,#str = "",
 				 weight_decay: float = 0,
 				 scores: List[str] = ["accuracy"],
-				 save_file: str = "default",
+				#  save_file: str = "default",
 				 visu: bool = False) -> None:
 		self.seed = seed		
 		self.layers =  []
@@ -54,13 +56,20 @@ class Model():
 		self.history = {'loss': []}
 		self.verbose_update = {}
 		self.scores = scores
+
 		for s in scores:
 			self.history[s] = []
 
-		self.save_file = save_file
+		before_val = list(self.history.keys())
+		for k in before_val:
+			self.history['val_' + k] = []
+
+		# self.save_file = save_file
 		
 		self.threshold = None
 		self.visu_on = visu
+
+		self.best = None
 
 		self._is_compiled = False
 		if self.visu_on:
@@ -108,11 +117,8 @@ class Model():
 				return (A > th).astype(np.int64)
 		elif self.layers[-1].g_name.lower() == "softmax":
 			def f_pred(A):
-				# print(f"f_pred {A.shape = }")
 				categories = A.argmax(axis=0)
-				# print(f"f_pred {categories.shape = }")
 				res = get_dummies(categories, range(self.layers[-1].n_units))
-				# print(f"f_pred {res.shape = }")
 				return res
 		self.f_pred = f_pred
 		self._is_compiled = True
@@ -129,21 +135,21 @@ class Model():
 			yield (X_batch, y_batch)
 
 	def _forward(self, X_batch):
-		# print(f"{X_batch.shape = }")
 		A = X_batch
-		# print(f"{A.shape = }")
 		for i, l in enumerate(self.layers):
 			logging.debug(f"\tForward: layer n*{i}")
 			A = l.forward(A)
 			if np.isnan(A).any():
 				print(f"Activation of layer {i} has NaNs")
-			# print(f"{A.shape = }")
 		return A
 
-	def _cost(self, AL, y_batch):
+	def _cost(self, AL, y_batch, test=False):
 		loss = self.loss.cost(AL, y_batch)
-		self.history['loss'].append(loss)
-		self.verbose_update['loss'] = loss
+		logg = "loss"
+		if test:
+			logg = "val_" + logg
+		self.history[logg].append(loss)
+		self.verbose_update[logg] = loss
 
 	def _backward(self, AL, X_batch, y_batch):
 		simplify = True
@@ -165,15 +171,26 @@ class Model():
 	def _early_stopping(self, epoch):
 		if not self.early_stopping:
 			return False
-		# TODO: cleaner solution
-		nb_epochs = len(self.history['accuracy'])
-		last_best = nb_epochs - np.argmax(self.history['accuracy'][::-1])
-		if last_best + 100 < nb_epochs:
+		metric = "val_loss"
+		max_trys = 100
+
+		if not self.best or self.best[metric] > self.history[metric][-1]:
+			# del self.best
+			# self.best = None
+			self.best = {
+				metric: self.history[metric][-1],
+				'epoch': epoch,
+				'model': copy.deepcopy(self.layers),
+			}
+
+		if self.best['epoch'] + max_trys < epoch:
 			print("Early stopping")
-			print(f"\tBest acc is {self.history['accuracy'][last_best]} at epoch {last_best}")
-			self.visualize()
-			self.visu.exit()
+			print(f"\tBest {metric} is {self.best[metric]} at epoch {self.best['epoch']}")
+			if self.visu_on:
+				self.visualize(epoch)
+				self.visu.exit()
 			return True
+
 		return False
 
 	def _verbose(self, pbar, e, jmp):
@@ -186,21 +203,37 @@ class Model():
 				self.visualize(e)
 		return jmp
 
+	def _train_test_split(self, X, y, test_ratio):
+		ratio = int(X.shape[1] * test_ratio)
+		X_train = X[:,ratio:]
+		X_test =  X[:,:ratio]
+		Y_train = y[:,ratio:]
+		Y_test =  y[:,:ratio]
+		return X_train, X_test, Y_train, Y_test
+
 	# TODO: Create decorators to protect user interfaces
-	def fit(self, X, y, epoch=1, minibatch=None, verbose=True, train_test_split=False):
+	def fit(self, X, y, epoch=1, minibatch=None, verbose:bool=True, train_test_split: float =0):
 		if not self._is_compiled:
 			raise Exception(f"Model needs to be compiled before being used")
 		jmp = 1
+		if train_test_split:
+			X_train, X_test, Y_train, Y_test = self._train_test_split(X, y, train_test_split)
+
 		with trange(epoch) as pbar:
 			pbar.set_description("Fit <3")
 			for e in pbar:
-				for X_batch, y_batch in self._get_minibatch(X, y, minibatch):
+				for X_batch, y_batch in self._get_minibatch(X_train, Y_train, minibatch):
+
 					AL = self._forward(X_batch)
 					self._cost(AL, y_batch)
 					self._backward(AL, X_batch, y_batch)
 
 					self._update(e)
-					self.score(X, y)
+					self.score(X_train, Y_train)
+
+					if train_test_split:
+						self.score(X_test, Y_test, test=True)
+						self._cost(self._forward(X_test), Y_test, test=True)
 
 					jmp = self._verbose(pbar, e, jmp)
 					if self._early_stopping(e):
@@ -208,14 +241,18 @@ class Model():
 		if self.visu_on:
 			self.visu.exit()
 	
-	def score(self, X, y):
+	def score(self, X, y, test=False):
 		pred = self.predict(X, Threshold=self.threshold)
 		# print(f"{pred.shape = }")
 		scores = self.history.keys()
 		if "accuracy" in scores:
 			acc = accuracy(y, pred)
-			self.history["accuracy"].append(acc)
-			self.verbose_update['accuracy'] = acc
+			logg = "accuracy"
+			if test:
+				logg = "val_" + logg
+			self.history[logg].append(acc)
+			self.verbose_update[logg] = acc
+		
 
 	def predict(self, X, Threshold=None):
 		A = self._forward(X)
@@ -237,22 +274,29 @@ class Model():
 		weight_decay = self.weight_decay
 		for layer, opti in zip(self.layers, self.optimizer.cache):
 			for param in layer.params.keys():
-				# layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
-				# 	(self.lr * opti['d' + param])
-				layer.params[param] = (layer.params[param]) - (self.lr * opti['d' + param])
+				layer.params[param] = ((1 - weight_decay) * layer.params[param]) - \
+					(self.lr * opti['d' + param])
+				# layer.params[param] = (layer.params[param]) - (self.lr * opti['d' + param])
 
 	def visualize(self, e):
-		self.visu.update_weights(self.layers, self.history['loss'], self.history['accuracy'])
+		self.visu.update_weights(self.layers, 
+							self.history['loss'], 
+							self.history['val_loss'],
+							self.history['accuracy'],
+							self.history['val_accuracy'])
 		self.visu.draw(e)
 
-	def save(self):
-		path = config.cache_folder + self.save_file + '.pkl'
+	def save(self, path):
+		# path = config.cache_folder + self.save_file + '.pkl'
 		if not os.path.exists(config.cache_folder):
 			print(f'{config.cache_folder} does not exist: creating it')
 			os.makedirs(config.cache_folder)
 
+		if self.best:
+			self.layers = self.best['model']
+
 		with open(path, 'wb') as f:
-			pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+			pickle.dump(self, f)#, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def load(self, save_file=""):
 		save_file = save_file if save_file else self.save_file
