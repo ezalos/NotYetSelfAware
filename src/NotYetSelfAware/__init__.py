@@ -1,8 +1,8 @@
-import layers
+import NotYetSelfAware.layers
 from .model import Model
 from .visualize import NeuralNetworkVisu
-import preprocessing
-import optimizers
+import NotYetSelfAware.preprocessing
+import NotYetSelfAware.optimizers
+from .config import config
 
-print(f"Hello from {__file__}")
 

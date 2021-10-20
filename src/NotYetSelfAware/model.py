@@ -1,20 +1,20 @@
+from sklearn.utils import shuffle
 import numpy as np
-from layers import Dense, Output
-from datasets.datasets import Datasets
-from validation import accuracy
-from cost import BinaryCrossEntropy
-from preprocessing import Standardize
-from optimizers import BaseOptimizer, Adam
-from visualize import NeuralNetworkVisu
+from NotYetSelfAware.layers import Dense, Output
+from NotYetSelfAware.datasets.datasets import Datasets
+from NotYetSelfAware.validation import accuracy
+from NotYetSelfAware.cost import BinaryCrossEntropy
+from NotYetSelfAware.preprocessing import Standardize
+from NotYetSelfAware.optimizers import BaseOptimizer, Adam
+from NotYetSelfAware.visualize import NeuralNetworkVisu
 import logging
 from tqdm import trange
 import sys
 from typing import List
-from config import config
+from NotYetSelfAware.config import config
 import pickle
 import copy
 import os
-from datasets import get_dummies
 import matplotlib.pyplot as plt
 
 # LOGGER INITIALISATION
@@ -111,15 +111,15 @@ class Model():
 		if self.visu_on:
 			self._compile_visu()
 		f_pred = None
-		if self.layers[-1].g_name.lower() == "sigmoid":
-			self.threshold = 0.5
-			def f_pred(A, th=0.5):
-				return (A > th).astype(np.int64)
-		elif self.layers[-1].g_name.lower() == "softmax":
-			def f_pred(A):
-				categories = A.argmax(axis=0)
-				res = get_dummies(categories, range(self.layers[-1].n_units))
-				return res
+		# if self.layers[-1].g_name.lower() == "sigmoid":
+			# self.threshold = 0.5
+			# def f_pred(A, th=0.5):
+			# 	return (A > th).astype(np.int64)
+		# elif self.layers[-1].g_name.lower() == "softmax":
+			# def f_pred(A):
+			# 	categories = A.argmax(axis=0)
+			# 	res = get_dummies(categories, range(self.layers[-1].n_units))
+			# 	return res
 		self.f_pred = f_pred
 		self._is_compiled = True
 
@@ -150,6 +150,7 @@ class Model():
 			logg = "val_" + logg
 		self.history[logg].append(loss)
 		self.verbose_update[logg] = loss
+		return loss
 
 	def _backward(self, AL, X_batch, y_batch):
 		simplify = True
@@ -203,7 +204,10 @@ class Model():
 				self.visualize(e)
 		return jmp
 
-	def _train_test_split(self, X, y, test_ratio):
+	def _train_test_split(self, X, y, test_ratio, r_shuffle=True):
+		if r_shuffle:
+			X, y = shuffle(X.T, y.T, random_state=self.seed)
+			X, y = X.T, y.T
 		ratio = int(X.shape[1] * test_ratio)
 		X_train = X[:,ratio:]
 		X_test =  X[:,:ratio]
@@ -218,13 +222,22 @@ class Model():
 		jmp = 1
 		if train_test_split:
 			X_train, X_test, Y_train, Y_test = self._train_test_split(X, y, train_test_split)
+		else:
+			X_train, Y_train = X, y
+			# X_test, Y_test = X, y
 
+		# print(f"X_train: {X_train.shape} dtype -> {X.dtype}")
+		# print(f"Y_train: {Y_train.shape} dtype -> {y.dtype}")
 		with trange(epoch) as pbar:
 			pbar.set_description("Fit <3")
 			for e in pbar:
 				for X_batch, y_batch in self._get_minibatch(X_train, Y_train, minibatch):
 
+					# print(f"X_batch: {X_batch.shape} dtype -> {X.dtype}")
+					# print(f"y_batch: {y_batch.shape} dtype -> {y.dtype}")
 					AL = self._forward(X_batch)
+					if np.isnan(AL).any():
+						return
 					self._cost(AL, y_batch)
 					self._backward(AL, X_batch, y_batch)
 
@@ -257,8 +270,8 @@ class Model():
 	def predict(self, X, Threshold=None):
 		A = self._forward(X)
 		# print(f"{A.shape = }")
-		if self.f_pred:
-			A = self.f_pred(A)
+		if self.layers[-1].g.pred:
+			A = self.layers[-1].g.pred(A)
 			# A = (A > Threshold).astype(np.int64)
 		y_pred = A
 		return y_pred
@@ -300,8 +313,8 @@ class Model():
 
 	def load(self, save_file=""):
 		save_file = save_file if save_file else self.save_file
-		path = config.cache_folder + save_file + '.pkl'
-		with open(path, 'rb') as f:
+		# path = config.cache_folder + save_file + '.pkl'
+		with open(save_file, 'rb') as f:
 			self = pickle.load(f)
 		return self
 

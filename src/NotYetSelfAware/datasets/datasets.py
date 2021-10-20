@@ -1,7 +1,7 @@
 from sklearn.datasets import make_blobs, make_moons, make_circles, make_regression, load_iris, load_digits
 import pandas as pd
 import numpy as np
-from config import config
+from NotYetSelfAware.config import config
 
 
 def get_dummies(y, uniques=None):

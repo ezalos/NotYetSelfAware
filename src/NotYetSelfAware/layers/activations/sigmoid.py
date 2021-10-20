@@ -19,3 +19,6 @@ class Sigmoid(BaseActivation):
 		A = self.forward(Z)
 		dA = A * (1 - A)
 		return dA
+
+	def pred(self, A, th=0.5):
+		return (A > th).astype(np.int64)

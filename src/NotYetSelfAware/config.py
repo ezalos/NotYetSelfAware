@@ -15,6 +15,6 @@ config = DotDict()
 config.learning_rate = 1e-1
 config.seed = 466880822
 
-config.cache_folder = "cache/"
+config.cache_folder = "src/cache/"
 config.mlp_dataset_path = "src/NotYetSelfAware/datasets/MLP/data.csv"
 # config.mlp_dataset_path = "src/NotYetSelfAware/datasets/MLP/min.csv"

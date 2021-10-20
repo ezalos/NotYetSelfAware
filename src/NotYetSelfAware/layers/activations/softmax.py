@@ -1,5 +1,6 @@
 import numpy as np
 from .base import BaseActivation
+from NotYetSelfAware.datasets import get_dummies
 
 
 class Softmax(BaseActivation):
@@ -30,6 +31,11 @@ class Softmax(BaseActivation):
 		dA = Z - np.log(exp_sum)
 		# print(f"{dA.shape = }")
 		return dA
+
+	def pred(self, A):
+		categories = A.argmax(axis=0)
+		res = get_dummies(categories, range(A.shape[0]))
+		return res
 
 if __name__ == "__main__":
 	# Shape is (Classes, Examples)
